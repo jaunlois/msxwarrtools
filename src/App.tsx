@@ -9,6 +9,7 @@ import SLTLookup from "./pages/SLTLookup";
 import PartsCoverage from "./pages/PartsCoverage";
 import OverlapChecker from "./pages/OverlapChecker";
 import ScheduledMaintenance from "./pages/ScheduledMaintenance";
+import CCCCodes from "./pages/CCCCodes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/parts" element={<PartsCoverage />} />
             <Route path="/overlaps" element={<OverlapChecker />} />
             <Route path="/maintenance" element={<ScheduledMaintenance />} />
+            <Route path="/ccc" element={<CCCCodes />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

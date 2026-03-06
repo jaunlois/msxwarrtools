@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Clock, Shield, AlertTriangle, Wrench } from "lucide-react";
+import { Clock, Shield, AlertTriangle, Wrench, FileText } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { sltSections } from "@/data/slt-data";
 import { partsData } from "@/data/parts-data";
@@ -32,6 +32,13 @@ const modules = [
     icon: Wrench,
     href: "/maintenance",
     stat: "All drivetrains",
+  },
+  {
+    title: "CCC Codes",
+    description: "Customer Concern Codes reference with quick-copy for claim forms",
+    icon: FileText,
+    href: "/ccc",
+    stat: "200+ codes",
   },
 ];
 
