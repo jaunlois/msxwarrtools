@@ -2730,13 +2730,1438 @@ export const sltSections: SLTSection[] = [
     name: "Campaign, TSB, ESB",
     range: "99",
     operations: [
+      // === Section overflow operations ===
+      {
+        description: "Operations not covered by any of the above - Section 1 - Wheels",
+        opCode: "1999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "1999X5", time: 0 }],
+      },
+      {
+        description: "Operations not covered by any of the above - Section 2 - Brakes",
+        opCode: "2999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "2999X5", time: 0 }],
+      },
+      {
+        description: "Operations not covered by any of the above - Section 3 - Front Suspension and Steering",
+        opCode: "3999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "3999X5", time: 0 }],
+      },
+      {
+        description: "Operations not covered by any of the above - Section 4 - Rear Axle",
+        opCode: "4999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "4999X5", time: 0 }],
+      },
+      {
+        description: "Operations not covered by any of the above - Section 5 - Exhaust System and Springs",
+        opCode: "5999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "5999X5", time: 0 }],
+      },
+      {
+        description: "Operations not covered by any of the above - Section 6 - Engine",
+        opCode: "6999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "6999X5", time: 0 }],
+      },
+      {
+        description: "Operations not covered by any of the above - Section 7 - Transmission",
+        opCode: "7999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "7999X5", time: 0 }],
+      },
+      {
+        description: "Operations not covered by any of the above - Section 8 - Cooling",
+        opCode: "8999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "8999X5", time: 0 }],
+      },
+      {
+        description: "Operations not covered by any of the above - Section 9 - Fuel System and Manifolds",
+        opCode: "9999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "9999X5", time: 0 }],
+      },
+      {
+        description: "Operations not covered by any of the above - Section 10 - Electrical",
+        opCode: "10999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "10999X5", time: 0 }],
+      },
+      {
+        description: "Operations not covered by any of the above - Section 11 - Body Electrical and Accessories",
+        opCode: "11999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "11999X5", time: 0 }],
+      },
+      {
+        description: "Operations not covered by any of the above - Section 12 - Body",
+        opCode: "12999X5",
+        baseTime: 0,
+        variants: [{ engine: "ALL", opCode: "12999X5", time: 0 }],
+      },
+
+      // === Heater/AC Register ===
+      {
+        description: "Register - Heater/Air Conditioner (045C08/045C09/19893) - Replace",
+        opCode: "19893A",
+        variants: [
+          { engine: "ALL", qualifier: "RIGHT", opCode: "19893AR", time: 0.3 },
+          { engine: "ALL", qualifier: "LEFT", opCode: "19893AL", time: 0.4 },
+          { engine: "ALL", qualifier: "CENTER ONE OR BOTH", opCode: "19893AC", time: 1.5 },
+          { engine: "ALL", qualifier: "ALL", opCode: "19893AT", time: 1.6 },
+        ],
+      },
+
+      // === TSB Operations 22xxxx series ===
+      {
+        description: "Reconfigure The Gateway Module GWM",
+        opCode: "222348A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "222348A", time: 0.3 }],
+      },
+      {
+        description: "Update the Power Fold Seat Module SCMJ to the latest software release using FDRS",
+        opCode: "222352A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "222352A", time: 0.3 }],
+      },
+      {
+        description: "Reprogram the BCM",
+        opCode: "222379A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "222379A", time: 0.3 }],
+      },
+      {
+        description: "Reprogram the Body Control Module",
+        opCode: "222400A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "222400A", time: 0.3 }],
+      },
+      {
+        description: "Automatic Transmission Harsh Engagement When Shifting To DRIVE",
+        opCode: "222414A",
+        notes: "10R80 transmission",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "222414A", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "222414B", time: 0.8 },
+        ],
+      },
+      {
+        description: "Reprogram the PSCM to the latest service software level using FDRS",
+        opCode: "222423A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "222423A", time: 0.3 }],
+      },
+      {
+        description: "Verify the orientation of the front windshield camera coax connection ensuring no tight bend radius - perform the IPMA 360 Degree View Camera alignment",
+        opCode: "222425A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "222425A", time: 1.0 }],
+      },
+      {
+        description: "License Plate Lamp Loose or Hanging Down Broken Clip",
+        opCode: "222435A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "222435A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "222435B", time: 0.5 },
+        ],
+      },
+      {
+        description: "Electric Park Brake Warning Lamp Illuminated When the Parking Brake Has Not Been Activated",
+        opCode: "222442A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "222442A", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "222442B", time: 0.5 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "222442C", time: 0.8 },
+        ],
+      },
+      {
+        description: "Front Power Seat Noise Sliding Forward and Backward Loose Housing Cable in the Motor Tray",
+        opCode: "222445A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "222445A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "222445B", time: 0.5 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "222445C", time: 0.8 },
+        ],
+      },
+      {
+        description: "Reprogram the IPC to latest software level using Ford Diagnostic Scan tool FDRS",
+        opCode: "222455A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "222455A", time: 0.3 }],
+      },
+      {
+        description: "Repair the upper glove compartment as per the given service procedure",
+        opCode: "222469A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "222469A", time: 0.2 }],
+      },
+      {
+        description: "Reconfigure The Gateway Module GWM - Do Not Use with Any Other Labor Operations",
+        opCode: "222476A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "222476A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "222476B", time: 0.2 },
+        ],
+      },
+      {
+        description: "Removal and Replace the Receiver Drier Element plug",
+        opCode: "222487B",
+        variants: [
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "222487B", time: 3.0 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "222487C", time: 3.3 },
+        ],
+      },
+      {
+        description: "Transmission Rattle Noise from Under the Vehicle Due to Loose or Missing DPF Bolts",
+        opCode: "222498A",
+        notes: "2.0L Pan Bi, 10R80",
+        variants: [
+          { engine: "2.0LPan Bi", qualifier: "INSPECT", opCode: "222498A", time: 0.9 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "222498B", time: 6.4 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "222498C", time: 5.8 },
+        ],
+      },
+
+      // === Campaign/FSA 22Bxx, 22Cxx, 22Pxx, 22Sxx ===
+      {
+        description: "IPMA Reprogramming and Configuration update APIM Sync and IPC",
+        opCode: "22B29A",
+        variants: [{ engine: "ALL", opCode: "22B29A", time: 1.3 }],
+      },
+      {
+        description: "Wiring Modification of LHS and RHS 16way and 3way connectors - Corrosion Inspection",
+        opCode: "22B33A",
+        variants: [{ engine: "ALL", opCode: "22B33A", time: 1.2 }],
+      },
+      {
+        description: "Inspection and Wiring Modification of LHS and RHS 16way and 4way connector - High series headlamps Only",
+        opCode: "22B33B",
+        variants: [{ engine: "ALL", opCode: "22B33B", time: 1.2 }],
+      },
+      {
+        description: "Update APIM Sync Configuration using FDRS",
+        opCode: "22B41A",
+        variants: [{ engine: "ALL", opCode: "22B41A", time: 0.3 }],
+      },
+      {
+        description: "Update ABS Module Configuration using FDRS",
+        opCode: "22B42A",
+        variants: [{ engine: "ALL", opCode: "22B42A", time: 0.3 }],
+      },
+      {
+        description: "Update PCM Calibration using FDRS and Reset Oil Life Monitor",
+        opCode: "22B43A",
+        variants: [{ engine: "ALL", opCode: "22B43A", time: 0.3 }],
+      },
+      {
+        description: "Update PCM Calibration using FDRS Reset Oil Life Monitor and Replace Oil and Oil Filter",
+        opCode: "22B43B",
+        variants: [{ engine: "ALL", opCode: "22B43B", time: 0.5 }],
+      },
+      {
+        description: "Update the Headlamp Control Module HCM Software",
+        opCode: "22C34A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "22C34A", time: 0.3 }],
+      },
+      {
+        description: "Update the Body Control Module BCM Configuration",
+        opCode: "22C36A",
+        variants: [{ engine: "ALL", opCode: "22C36A", time: 0.3 }],
+      },
+      {
+        description: "APIM Sync module PMI Configuration",
+        opCode: "22P20A",
+        variants: [{ engine: "ALL", opCode: "22P20A", time: 0.5 }],
+      },
+      {
+        description: "Remove and Replace 12inch Display",
+        opCode: "22P29A",
+        variants: [{ engine: "ALL", opCode: "22P29A", time: 2.4 }],
+      },
+      {
+        description: "Install Protective sleeve",
+        opCode: "22S57A",
+        variants: [{ engine: "ALL", opCode: "22S57A", time: 0.3 }],
+      },
+
+      // === TSB Operations 23xxxx series ===
+      {
+        description: "Air Conditioning AC Not Cooling With Incorrect Low Ambient Temperatures Displayed",
+        opCode: "232007A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232007A", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232007B", time: 0.1 },
+        ],
+      },
+      {
+        description: "Wiper Blade Contact With A Pillar",
+        opCode: "232037A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232037A", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232037B", time: 0.2 },
+        ],
+      },
+      {
+        description: "Reprogram the BCM",
+        opCode: "232043A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232043A", time: 0.3 }],
+      },
+      {
+        description: "Verify the orientation of front windshield camera coax connection - perform the IPMA 360 Degree View Camera alignment procedure",
+        opCode: "232044A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232044A", time: 1.0 }],
+      },
+      {
+        description: "Anti Lock ABS Module Reprogram Update to the latest service software level using FDRS",
+        opCode: "232063A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232063A", time: 0.3 }],
+      },
+      {
+        description: "Replace the A/C compressor inlet line",
+        opCode: "232085B",
+        variants: [{ engine: "2.0L Panth", qualifier: "REPAIR/REPLACE", opCode: "232085B", time: 1.3 }],
+      },
+      {
+        description: "Reprogram the IPC to latest software level using Ford Diagnostic Scan tool FDRS",
+        opCode: "232089A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232089A", time: 1.5 }],
+      },
+      {
+        description: "Check and clean oil stain and resecure the front support bracket following the tightening sequence",
+        opCode: "232110A",
+        variants: [{ engine: "2.0LPan Bi", qualifier: "INSPECT", opCode: "232110A", time: 1.0 }],
+      },
+      {
+        description: "Reprogram the Anti Lock Brake System ABS module to the latest service software level using FDRS",
+        opCode: "232128A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232128A", time: 0.3 }],
+      },
+      {
+        description: "Removal and Replace the Receiver Drier Element plug",
+        opCode: "232134B",
+        variants: [
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232134B", time: 3.0 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232134C", time: 3.3 },
+        ],
+      },
+      {
+        description: "Instrument Panel Cluster IPC Configuration Update",
+        opCode: "232140A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232140A", time: 0.4 }],
+      },
+      {
+        description: "Front Power Seat Noise Sliding Forward Backward Loose Housing Cable In The Motor Tray",
+        opCode: "232148A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232148A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232148B", time: 0.5 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232148C", time: 0.8 },
+        ],
+      },
+      {
+        description: "Reduced Audio Quality When Making A Phone Call Using Bluetooth",
+        opCode: "232165A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232165A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232165B", time: 0.9 },
+        ],
+      },
+      {
+        description: "Illuminated MIL With DTCs",
+        opCode: "232173A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232173A", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232173B", time: 3.0 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232173C", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232173D", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232173E", time: 0.4 },
+        ],
+      },
+      {
+        description: "B Pillar Ticking Sound",
+        opCode: "232175A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232175A", time: 1.0 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232175B", time: 1.8 },
+        ],
+      },
+      {
+        description: "Verify the orientation of front windshield camera coax connection - perform the IPMA 360 Degree View Camera alignment procedure",
+        opCode: "232184A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232184A", time: 1.0 }],
+      },
+      {
+        description: "Reprogram the ABS module to the latest service software level using FDRS",
+        opCode: "232186A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232186A", time: 0.3 }],
+      },
+      {
+        description: "Hillstart Assist Auto Hold or Advanced Driver Assistance System Functions Unavailable with DTC P166B",
+        opCode: "232223A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232223A", time: 0.5 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232223B", time: 1.0 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232223C", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232223D", time: 1.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232223E", time: 0.6 },
+        ],
+      },
+      {
+        description: "Apply Grease and repair the Exterior Mirror as per given service procedure Both Side",
+        opCode: "232224A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232224A", time: 0.3 }],
+      },
+      {
+        description: "Record and report air conditioning repair information in technician comments of warranty claim",
+        opCode: "232227A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232227A", time: 0.2 }],
+      },
+      {
+        description: "Remove the Front seats and Replace the Air bag wiring as per the given service procedure Both sides",
+        opCode: "232254A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232254A", time: 1.5 }],
+      },
+      {
+        description: "Electric Park Brake Warning Lamp Illuminated When the Parking Brake Has Not Been Activated",
+        opCode: "232255A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232255A", time: 0.5 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232255B", time: 0.8 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232255C", time: 0.5 },
+        ],
+      },
+      {
+        description: "Connect the FDRS to vehicle and check for DTCs - includes Reflash PCM, Throttle Body cleaning, EGR Reset and final check",
+        opCode: "232260A",
+        variants: [
+          { engine: "2.0L Panth", qualifier: "INSPECT", opCode: "232260A", time: 0.7 },
+          { engine: "2.0LPan Bi", qualifier: "INSPECT", opCode: "232260A", time: 0.7 },
+        ],
+      },
+      {
+        description: "B Pillar Ticking Sound",
+        opCode: "232262A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232262A", time: 1.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232262B", time: 2.3 },
+        ],
+      },
+      {
+        description: "Liftgate Water Leak from the Liftgate Mounted Rear Lamp",
+        opCode: "232303A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232303A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232303B", time: 0.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232303C", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232303D", time: 0.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232303E", time: 0.2 },
+        ],
+      },
+      {
+        description: "12 Inch Center Display Screen Blank",
+        opCode: "232312A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232312A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232312B", time: 2.8 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232312C", time: 2.7 },
+        ],
+      },
+      {
+        description: "Connect the FDRS - Select the IPC module and update the software",
+        opCode: "232321A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232321A", time: 0.3 }],
+      },
+      {
+        description: "Illuminated MIL With DTCs (3.0L Diesel)",
+        opCode: "232322A",
+        variants: [
+          { engine: "3.0L DSL", qualifier: "INSPECT", opCode: "232322A", time: 0.2 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "232322B", time: 3.0 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "232322C", time: 0.3 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "232322D", time: 0.3 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "232322E", time: 0.4 },
+        ],
+      },
+      {
+        description: "Interior Rattle at the Front of the Vehicle Below the Instrument Panel",
+        opCode: "232323A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232323A", time: 3.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232323B", time: 0.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232323C", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232323D", time: 0.2 },
+        ],
+      },
+      {
+        description: "Inspect and Replace the CAC intake pipe",
+        opCode: "232342A",
+        variants: [{ engine: "2.0LPan Bi", qualifier: "INSPECT", opCode: "232342A", time: 0.4 }],
+      },
+      {
+        description: "Repair the panoramic roof drain hose - includes remove and install cowl panel grill and visual check drain hose",
+        opCode: "232383A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232383A", time: 0.9 }],
+      },
+      {
+        description: "12 Inch Center Display Screen Blank",
+        opCode: "232414A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "232414A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "232414C", time: 2.7 },
+        ],
+      },
+      {
+        description: "Connect FDRS and Reprogram Powertrain Control Module PCM to the latest service calibration",
+        opCode: "232418A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "232418A", time: 0.5 }],
+      },
+      {
+        description: "Engine Reduced Power With An Illuminated MIL And DTC P246C",
+        opCode: "232423A",
+        variants: [
+          { engine: "2.0L Panth", qualifier: "INSPECT", opCode: "232423A", time: 0.3 },
+          { engine: "2.0L Panth", qualifier: "REPAIR/REPLACE", opCode: "232423B", time: 0.9 },
+          { engine: "2.0LPan Bi", qualifier: "INSPECT", opCode: "232423A", time: 0.3 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "232423B", time: 0.9 },
+        ],
+      },
+      {
+        description: "Inspect and Replace the CAC intake pipe",
+        opCode: "232424A",
+        variants: [{ engine: "2.0LPan Bi", qualifier: "INSPECT", opCode: "232424A", time: 0.4 }],
+      },
+
+      // === Campaign/FSA 23Bxx series ===
+      {
+        description: "Hot end bracket replacement and transmission housing inspection",
+        opCode: "23B15A",
+        notes: "2.0LPan Bi, 10R80",
+        variants: [{ engine: "2.0LPan Bi", opCode: "23B15A", time: 1.0 }],
+      },
+      {
+        description: "Hot end bracket replacement and transmission housing inspection and transmission replacement 2WD",
+        opCode: "23B15B",
+        variants: [{ engine: "2.0LPan Bi", opCode: "23B15B", time: 7.2 }],
+      },
+      {
+        description: "Hot end bracket replacement and transmission housing inspection and transmission replacement 4WD",
+        opCode: "23B15C",
+        variants: [{ engine: "2.0LPan Bi", opCode: "23B15C", time: 7.5 }],
+      },
+      {
+        description: "Inspect Oil Pickup Tube Presence - Pass",
+        opCode: "23B23A",
+        variants: [{ engine: "ALL", opCode: "23B23A", time: 0.6 }],
+      },
+      {
+        description: "Inspect Oil Pickup Tube Presence - Fail Replace the Engine Assembly",
+        opCode: "23B23B",
+        variants: [{ engine: "ALL", opCode: "23B23B", time: 15.0 }],
+      },
+      {
+        description: "Instrument Panel Cluster IPC Software and Configuration Update",
+        opCode: "23B29B",
+        variants: [{ engine: "ALL", opCode: "23B29B", time: 0.8 }],
+      },
+      {
+        description: "Update ABS Software using FDRS",
+        opCode: "23B30B",
+        variants: [{ engine: "ALL", opCode: "23B30B", time: 0.3 }],
+      },
+      {
+        description: "APIM SYNC Module Configuration Update",
+        opCode: "23B46B",
+        variants: [{ engine: "ALL", opCode: "23B46B", time: 0.3 }],
+      },
+      {
+        description: "Inspection of Dashcam Operation Only",
+        opCode: "23B75A",
+        variants: [{ engine: "ALL", opCode: "23B75A", time: 0.2 }],
+      },
+      {
+        description: "Inspection of Dashcam and Replace Hardware Wiring Kit",
+        opCode: "23B75B",
+        variants: [{ engine: "ALL", opCode: "23B75B", time: 1.6 }],
+      },
+      {
+        description: "Engine Mount Replace - Panther 2L All variants",
+        opCode: "23B76B",
+        variants: [
+          { engine: "2.0L Panth", opCode: "23B76B", time: 1.4 },
+          { engine: "2.0LPan Bi", opCode: "23B76B", time: 1.4 },
+        ],
+      },
+      {
+        description: "Engine Mount Replace - Lion 3L",
+        opCode: "23B76C",
+        variants: [{ engine: "3.0L DSL", opCode: "23B76C", time: 1.6 }],
+      },
+      {
+        description: "Transport and Factory Mode Deactivation using FDRS",
+        opCode: "23B97B",
+        variants: [{ engine: "ALL", opCode: "23B97B", time: 0.3 }],
+      },
+      {
+        description: "Mobile Service - repair takes place away from dealership",
+        opCode: "23B97MM",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "23B97MM", time: 0.5 }],
+      },
+
+      // === Campaign/FSA 23Cxx series ===
+      {
+        description: "Update Instrument Panel Cluster IPC Configuration",
+        opCode: "23C06B",
+        variants: [{ engine: "ALL", opCode: "23C06B", time: 0.3 }],
+      },
+      {
+        description: "Instrument panel cluster IPC software update and validation",
+        opCode: "23C10B",
+        variants: [{ engine: "ALL", opCode: "23C10B", time: 0.5 }],
+      },
+      {
+        description: "Instrument Panel Cluster IPC Configuration Update",
+        opCode: "23C11B",
+        variants: [{ engine: "ALL", opCode: "23C11B", time: 0.4 }],
+      },
+      {
+        description: "Instrument Panel Cluster IPC Software and Configuration Update",
+        opCode: "23C11C",
+        variants: [{ engine: "ALL", opCode: "23C11C", time: 0.8 }],
+      },
+      {
+        description: "Software Validation and PCM Calibration software update",
+        opCode: "23C29B",
+        variants: [{ engine: "ALL", opCode: "23C29B", time: 0.3 }],
+      },
+      {
+        description: "PCM calibration software level check and reductant injector replace",
+        opCode: "23C30B",
+        variants: [{ engine: "ALL", opCode: "23C30B", time: 0.7 }],
+      },
+      {
+        description: "PCM calibration level check update and reductant injector replace",
+        opCode: "23C30C",
+        variants: [{ engine: "ALL", opCode: "23C30C", time: 0.9 }],
+      },
+
+      // === Campaign/FSA 23Exx, 23Lxx, 23Pxx, 23Sxx series ===
+      {
+        description: "Replace DPF Assembly",
+        opCode: "23E08B",
+        variants: [{ engine: "ALL", opCode: "23E08B", time: 1.4 }],
+      },
+      {
+        description: "Check and Insert print of Attachment III to Service Portfolio",
+        opCode: "23L03B",
+        variants: [{ engine: "ALL", opCode: "23L03B", time: 0.2 }],
+      },
+      {
+        description: "Inspect for and insert if required Towing a Trailer Precautions Supplement Booklet",
+        opCode: "23L07A",
+        variants: [{ engine: "ALL", opCode: "23L07A", time: 0.2 }],
+      },
+      {
+        description: "Inspect for Booklet only",
+        opCode: "23L07B",
+        variants: [{ engine: "ALL", opCode: "23L07B", time: 0.2 }],
+      },
+      {
+        description: "Inspect the fuel label on the Fuel flap inner and the sticker in service portfolio - both present",
+        opCode: "23L08A",
+        variants: [{ engine: "ALL", opCode: "23L08A", time: 0.2 }],
+      },
+      {
+        description: "Inspect and affix the Fuel flap inner Label",
+        opCode: "23L08B",
+        variants: [{ engine: "ALL", opCode: "23L08B", time: 0.2 }],
+      },
+      {
+        description: "Inspect and affix the fuel flap inner label and sticker in service portfolio",
+        opCode: "23L08C",
+        variants: [{ engine: "ALL", opCode: "23L08C", time: 0.3 }],
+      },
+      {
+        description: "Update Instrument Panel Cluster IPC Configuration",
+        opCode: "23P04B",
+        variants: [{ engine: "ALL", opCode: "23P04B", time: 0.3 }],
+      },
+      {
+        description: "Hose and Wiring Inspection Sleeve fitment and Harness Reroute",
+        opCode: "23P15B",
+        variants: [{ engine: "ALL", opCode: "23P15B", time: 0.3 }],
+      },
+      {
+        description: "Coolant Pipe Replacement",
+        opCode: "23P15C",
+        variants: [{ engine: "ALL", opCode: "23P15C", time: 0.8 }],
+      },
+      {
+        description: "Remove and Install Charge air duct",
+        opCode: "23P23B",
+        variants: [{ engine: "ALL", opCode: "23P23B", time: 0.4 }],
+      },
+      {
+        description: "Inspect Driver Seatbelt Retractor and Pretensioner Assembly - Pass",
+        opCode: "23S14A",
+        variants: [{ engine: "ALL", opCode: "23S14A", time: 0.2 }],
+      },
+      {
+        description: "Inspect Driver Seatbelt Retractor and Pretensioner Assembly - Fail",
+        opCode: "23S14AF",
+        variants: [{ engine: "ALL", opCode: "23S14AF", time: 0.2 }],
+      },
+      {
+        description: "Seat belt retractor and pretensioner assembly inspection and replacement - Ranger double cab and Everest and DIPA",
+        opCode: "23S14B",
+        variants: [{ engine: "ALL", opCode: "23S14B", time: 1.2 }],
+      },
+      {
+        description: "Seat Belt Retractor and Pretensioner Assembly Inspection and Replacement - Single Cab and DIPA",
+        opCode: "23S14C",
+        variants: [{ engine: "ALL", opCode: "23S14C", time: 1.0 }],
+      },
+      {
+        description: "Arrange ARB reworked remote return",
+        opCode: "23S26B",
+        variants: [{ engine: "ALL", opCode: "23S26B", time: 0.2 }],
+      },
+      {
+        description: "Update the PCM Calibration",
+        opCode: "23S40B",
+        variants: [{ engine: "ALL", opCode: "23S40B", time: 0.3 }],
+      },
+
+      // === TSB Operations 24xxxx series ===
+      {
+        description: "Verify orientation of front windshield camera coax connection - perform IPMA 360 Degree View Camera alignment procedure",
+        opCode: "242005A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "242005A", time: 1.0 }],
+      },
+      {
+        description: "Reprogram the Appropriate Modules as Required by the Software Update as per Service Procedure",
+        opCode: "242041A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "242041A", time: 1.5 }],
+      },
+      {
+        description: "2L Panther Engine No Start Condition After An Extended Drive At Low RPM With The AC On High",
+        opCode: "242048A",
+        variants: [
+          { engine: "2.0L Panth", qualifier: "INSPECT", opCode: "242048A", time: 0.2 },
+          { engine: "2.0L Panth", qualifier: "REPAIR/REPLACE", opCode: "242048B", time: 0.2 },
+          { engine: "2.0L Panth", qualifier: "REPAIR/REPLACE", opCode: "242048C", time: 0.3 },
+          { engine: "2.0LPan Bi", qualifier: "INSPECT", opCode: "242048A", time: 0.2 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "242048B", time: 0.2 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "242048C", time: 0.3 },
+        ],
+      },
+      {
+        description: "Reprogram the Appropriate Modules As Required By The Software Update as per Service Procedure",
+        opCode: "242060A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "242060A", time: 1.5 }],
+      },
+      {
+        description: "Remove the Front seats and Replace the Air bag wiring as per the given service procedure Both sides",
+        opCode: "242076A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "242076A", time: 1.5 }],
+      },
+      {
+        description: "Power Folding Exterior Mirrors Noise When Folding and Unfolding",
+        opCode: "242081A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "242081A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242081B", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242081C", time: 0.7 },
+        ],
+      },
+      {
+        description: "Verify orientation of front windshield camera coax connection - perform IPMA 360 Degree View Camera alignment procedure",
+        opCode: "242091A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "242091A", time: 1.0 }],
+      },
+      {
+        description: "Liftgate Water Leak from the Liftgate Mounted Rear Lamp",
+        opCode: "242131A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "242131A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242131B", time: 0.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242131C", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242131D", time: 0.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242131E", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242131F", time: 0.2 },
+        ],
+      },
+      {
+        description: "Connect FDRS and check for DTCs - Reflash Transmission Control Module to latest service calibration",
+        opCode: "242133A",
+        variants: [{ engine: "2.0L Panth", qualifier: "INSPECT", opCode: "242133A", time: 0.5 }],
+        notes: "6SP 6R80 transmission",
+      },
+      {
+        description: "Power Folding Mirrors Exterior Noise When Folding and Unfolding",
+        opCode: "242144A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "242144A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242144B", time: 0.6 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242144C", time: 1.0 },
+        ],
+      },
+      {
+        description: "Engine Rattle Vibration Buzz or Resonance from the Air Intake Area Between 1500RPM to 2000RPM Or 20Kph to 80Kph",
+        opCode: "242178A",
+        variants: [
+          { engine: "2.0L Panth", qualifier: "INSPECT", opCode: "242178A", time: 0.3 },
+          { engine: "2.0L Panth", qualifier: "REPAIR/REPLACE", opCode: "242178B", time: 0.2 },
+          { engine: "2.0LPan Bi", qualifier: "INSPECT", opCode: "242178A", time: 0.3 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "242178B", time: 0.2 },
+          { engine: "3.0L DSL", qualifier: "INSPECT", opCode: "242178A", time: 0.3 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "242178B", time: 0.2 },
+        ],
+      },
+      {
+        description: "Verify the orientation of front windshield camera coax connection - perform IPMA 360 Degree View Camera alignment procedure",
+        opCode: "242195A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "242195A", time: 1.0 }],
+      },
+      {
+        description: "Repair the panoramic roof drain hose - includes remove and install of cowl panel grill visual check drain hose",
+        opCode: "242207A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "242207A", time: 0.9 }],
+      },
+      {
+        description: "Diesel Engine Illuminated MIL With DTCs",
+        opCode: "242219A",
+        variants: [
+          { engine: "3.0L DSL", qualifier: "INSPECT", opCode: "242219A", time: 0.2 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "242219B", time: 3.0 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "242219C", time: 0.3 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "242219D", time: 0.3 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "242219E", time: 0.4 },
+        ],
+      },
+      {
+        description: "Replace ALL 3 parts - front door trim RH, front door trim LH and floor console upper trim panel",
+        opCode: "242220A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "242220A", time: 1.2 }],
+      },
+      {
+        description: "Engine Overheating and or Poor AC Performance with DTC P0480 and or P0217",
+        opCode: "242224A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "242224A", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242224B", time: 1.0 },
+        ],
+      },
+      {
+        description: "Speed Sign Recognition System and Intelligent Adaptive Cruise Control Incorrectly Detecting Speed Limit",
+        opCode: "242237A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "242237A", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242237B", time: 0.1 },
+        ],
+      },
+      {
+        description: "Connect FDRS to check and clear DTC - Download and run reset IPMA learned values - perform IPMA 360 Degree View Camera alignment",
+        opCode: "242247A",
+        variants: [{ engine: "ALL", opCode: "242247A", time: 0.7 }],
+      },
+      {
+        description: "Engine Illuminated MIL With DTCs (3.0L - variant A)",
+        opCode: "242271A",
+        variants: [
+          { engine: "3.0L DSL", qualifier: "INSPECT", opCode: "242271A", time: 0.2 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "242271B", time: 1.2 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "242271C", time: 0.4 },
+        ],
+      },
+      {
+        description: "Engine Illuminated MIL With DTCs (3.0L - variant B)",
+        opCode: "242272A",
+        variants: [
+          { engine: "3.0L DSL", qualifier: "INSPECT", opCode: "242272A", time: 0.2 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "242272B", time: 1.2 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "242272C", time: 0.3 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "242272D", time: 0.3 },
+          { engine: "3.0L DSL", qualifier: "REPAIR/REPLACE", opCode: "242272E", time: 0.4 },
+        ],
+      },
+      {
+        description: "Connect FDRS and check for DTCs - update DDM and PDM to latest software includes power door window initialization",
+        opCode: "242273A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "242273A", time: 0.4 }],
+      },
+      {
+        description: "Connect FDRS to check and clear DTC - perform the appropriate FDRS camera alignment procedure",
+        opCode: "242286A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "242286A", time: 0.7 }],
+      },
+      {
+        description: "Liftgate Water Leak from the Liftgate Mounted Rear Lamp (7 tier)",
+        opCode: "242301A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "242301A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242301B", time: 0.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242301C", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242301D", time: 0.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242301E", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242301F", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242301G", time: 0.4 },
+        ],
+      },
+      {
+        description: "Reprogram Accessory Protocol Interface Module",
+        opCode: "242335A",
+        variants: [{ engine: "ALL", opCode: "242335A", time: 1.5 }],
+      },
+      {
+        description: "Liftgate Water Leak from the Liftgate Mounted Rear Lamp (6 tier)",
+        opCode: "242338A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "242338A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242338B", time: 0.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242338C", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242338D", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242338E", time: 0.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242338F", time: 0.2 },
+        ],
+      },
+      {
+        description: "B Pillar Ticking Sound with OLD Grab Handle Bracket Design",
+        opCode: "242346A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "242346A", time: 1.0 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242346B", time: 1.8 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242346C", time: 1.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242346D", time: 2.4 },
+        ],
+      },
+      {
+        description: "Connect the FDRS to the vehicle and check for DTCs",
+        opCode: "242373A",
+        variants: [{ engine: "ALL", opCode: "242373A", time: 0.2 }],
+      },
+      {
+        description: "Road test the vehicle and ensure correct operation",
+        opCode: "242373B",
+        variants: [{ engine: "ALL", opCode: "242373B", time: 0.4 }],
+      },
+      {
+        description: "Remove all glow plugs to inspect and replace - refit as required",
+        opCode: "242373C",
+        variants: [{ engine: "3.0L DSL", opCode: "242373C", time: 1.3 }],
+      },
+      {
+        description: "Liftgate Water Leak from the Liftgate Mounted Rear Lamp",
+        opCode: "242376A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "242376A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242376B", time: 0.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242376C", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242376D", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242376E", time: 0.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242376F", time: 0.2 },
+        ],
+      },
+      {
+        description: "Update the IPC software",
+        opCode: "242381A",
+        variants: [{ engine: "ALL", opCode: "242381A", time: 0.5 }],
+      },
+      {
+        description: "Bi Turbo Engine Staining at the High Pressure Low Pressure Bi Turbo Joint",
+        opCode: "242390A",
+        variants: [
+          { engine: "2.0LPan Bi", qualifier: "INSPECT", opCode: "242390A", time: 0.2 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "242390B", time: 1.0 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "242390C", time: 5.1 },
+        ],
+      },
+      {
+        description: "Accelerated Wear of the Rear Inner Brake Pads or Scraping and Grinding Noises",
+        opCode: "242417A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "242417A", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242417B", time: 0.7 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "242417C", time: 0.5 },
+        ],
+      },
+
+      // === Campaign/FSA 24Bxx series ===
+      {
+        description: "Remove and Install Charge Air Cooler Duct",
+        opCode: "24B33B",
+        variants: [{ engine: "ALL", opCode: "24B33B", time: 0.4 }],
+      },
+      {
+        description: "Mobile Service (24B33)",
+        opCode: "24B33MM",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "24B33MM", time: 0.5 }],
+      },
+      {
+        description: "Replace dipstick and install label",
+        opCode: "24B49B",
+        variants: [{ engine: "ALL", opCode: "24B49B", time: 0.3 }],
+      },
+      {
+        description: "Mobile Service (24B49)",
+        opCode: "24B49MM",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "24B49MM", time: 0.5 }],
+      },
+      {
+        description: "Check for GWM APIM TCU - ALL Modules at latest software level - No reprogramming required - Closes CSP 24B50",
+        opCode: "24B50A",
+        variants: [{ engine: "ALL", opCode: "24B50A", time: 0.3 }],
+      },
+      {
+        description: "Reprogram the modules as mentioned in the Service Procedure (24B50)",
+        opCode: "24B50B",
+        variants: [{ engine: "ALL", opCode: "24B50B", time: 1.0 }],
+      },
+      {
+        description: "Mobile Service (24B50)",
+        opCode: "24B50MM",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "24B50MM", time: 0.5 }],
+      },
+      {
+        description: "Rework cooling fan relay wiring and replace cooling fan relay",
+        opCode: "24B51B",
+        variants: [{ engine: "ALL", opCode: "24B51B", time: 0.8 }],
+      },
+      {
+        description: "Mobile Service (24B51)",
+        opCode: "24B51MM",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "24B51MM", time: 0.5 }],
+      },
+      {
+        description: "Vehicle Pick up and Delivery Allowance (24B51)",
+        opCode: "24B51PP",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "24B51PP", time: 0.5 }],
+      },
+
+      // === Campaign/FSA 24Cxx series ===
+      {
+        description: "Update the DDM and PDM Software on all doors using FDRS",
+        opCode: "24C24B",
+        variants: [{ engine: "ALL", opCode: "24C24B", time: 0.4 }],
+      },
+      {
+        description: "Lincoln Vehicle Pick up and Delivery PDL Allowance (24C24)",
+        opCode: "24C24LL",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "24C24LL", time: 0.5 }],
+      },
+      {
+        description: "Mobile Service (24C24)",
+        opCode: "24C24MM",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "24C24MM", time: 0.5 }],
+      },
+      {
+        description: "Ford Vehicle Pick up and Delivery Allowance (24C24)",
+        opCode: "24C24PP",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "24C24PP", time: 0.5 }],
+      },
+
+      // === Campaign/FSA 24Pxx series ===
+      {
+        description: "Update the PCM Calibration",
+        opCode: "24P13B",
+        variants: [{ engine: "ALL", opCode: "24P13B", time: 0.3 }],
+      },
+      {
+        description: "Inspect all glow plugs using inspection mirror",
+        opCode: "24P37A",
+        variants: [{ engine: "ALL", opCode: "24P37A", time: 0.5 }],
+      },
+      {
+        description: "Inspect all glow plugs and replace suspect FAILED parts",
+        opCode: "24P37B",
+        variants: [{ engine: "ALL", opCode: "24P37B", time: 1.1 }],
+      },
+
+      // === TSB Operations 25xxxx series ===
+      {
+        description: "B Pillar Ticking Sound with OLD Grab Handle Bracket Design",
+        opCode: "252026A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252026A", time: 1.0 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252026B", time: 1.8 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252026C", time: 1.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252026D", time: 2.4 },
+        ],
+      },
+      {
+        description: "Partial Digital Cluster Display - Vehicle Can Not Start Caused By Battery KOL",
+        opCode: "252046A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252046A", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252046B", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252046C", time: 0.5 },
+        ],
+      },
+      {
+        description: "Connect FDRS and Reflash PCM to the latest service calibration using the latest FDRS software release",
+        opCode: "252060A",
+        variants: [
+          { engine: "2.0L Panth", opCode: "252060A", time: 0.5 },
+          { engine: "2.0LPan Bi", opCode: "252060A", time: 0.5 },
+        ],
+      },
+      {
+        description: "Connect FDRS and Reflash the TCM to the latest service calibration includes road test",
+        opCode: "252078A",
+        variants: [{ engine: "ALL", opCode: "252078A", time: 0.5 }],
+      },
+      {
+        description: "Remove Front and Rear Door trim panel and Door Glass Run Rubber and Attach Adhesive tape for All 4 doors",
+        opCode: "252094A",
+        variants: [{ engine: "ALL", qualifier: "INSPECT", opCode: "252094A", time: 2.4 }],
+      },
+      {
+        description: "Airbag Warning Lamp Illuminated - DTC Restraint Control Module",
+        opCode: "252101A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252101A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252101B", time: 0.9 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252101C", time: 0.1 },
+        ],
+      },
+      {
+        description: "Trailer Disconnected Message Displayed while Towing Trailers Equipped with EOH Brakes",
+        opCode: "252115A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252115A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252115B", time: 0.3 },
+        ],
+      },
+      {
+        description: "Reprogram Accessory Protocol Interface Module",
+        opCode: "252135A",
+        variants: [{ engine: "ALL", opCode: "252135A", time: 1.5 }],
+      },
+      {
+        description: "Accelerated Wear of the Rear Inner Brake Pads or Scraping and Grinding Noises",
+        opCode: "252147A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252147A", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252147B", time: 0.9 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252147C", time: 0.5 },
+        ],
+      },
+      {
+        description: "12 Inch Center Display Screen Hardware Concerns",
+        opCode: "252151A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252151A", time: 1.5 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252151B", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252151C", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252151E", time: 1.7 },
+        ],
+      },
+      {
+        description: "Floor Console Upper Trim Panel Replace",
+        opCode: "252173A",
+        variants: [{ engine: "ALL", opCode: "252173A", time: 0.5 }],
+      },
+      {
+        description: "Remove and refit front door trim sides for Ranger Raptor Wildtrak Stormtrak Platinum and Everest all series",
+        opCode: "252177B",
+        variants: [{ engine: "ALL", opCode: "252177B", time: 0.6 }],
+      },
+      {
+        description: "Liftgate Unintentionally Opens by Itself Intermittently",
+        opCode: "252183A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252183A", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252183B", time: 0.1 },
+        ],
+      },
+      {
+        description: "Front Drive Half Shaft Grease Seeps or Leaks",
+        opCode: "252204A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252204A", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252204B", time: 1.8 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252204C", time: 1.8 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252204D", time: 3.1 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252204E", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252204F", time: 0.6 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252204G", time: 1.1 },
+        ],
+      },
+      {
+        description: "4WD Inoperative Illuminated MIL with DTCs Stored in the AWD Module",
+        opCode: "252250A",
+        notes: "4WHL L/H PART TIME DRIVE, 4WHL R/H FULL TIME DRIVE, 4WHL R/H PART TIME DRIVE",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252250A", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252250B", time: 0.3 },
+        ],
+      },
+      {
+        description: "Roof Opening Panel Water Leak at the A Pillar Trim Panel, A Pillar Assist handle and or Overhead Console",
+        opCode: "252305A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252305A", time: 0.8 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252305B", time: 2.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252305C", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252305D", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252305E", time: 0.4 },
+        ],
+      },
+      {
+        description: "Front Windshield Camera Front Camera Fault Service Required Message with DTC",
+        opCode: "252316A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252316A", time: 1.6 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252316B", time: 1.7 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252316C", time: 0.5 },
+        ],
+      },
+      {
+        description: "Power Folding Mirrors Exterior Mirror Noise When Folding and Unfolding",
+        opCode: "252327A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252327A", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252327B", time: 0.6 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252327C", time: 1.0 },
+        ],
+      },
+      {
+        description: "Loss Of Power with an Illuminated MIL and DTCs",
+        opCode: "252334A",
+        variants: [
+          { engine: "2.0L Panth", qualifier: "INSPECT", opCode: "252334A", time: 0.2 },
+          { engine: "2.0L Panth", qualifier: "REPAIR/REPLACE", opCode: "252334B", time: 1.5 },
+          { engine: "2.0LPan Bi", qualifier: "INSPECT", opCode: "252334A", time: 0.2 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "252334B", time: 1.5 },
+        ],
+      },
+      {
+        description: "Water Leak from the Roof Opening Panel into the Cabin Via the Sunglass Holder or Grab Handle",
+        opCode: "252463A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252463A", time: 0.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252463B", time: 0.9 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252463C", time: 2.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252463D", time: 0.7 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252463E", time: 0.5 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252463F", time: 0.2 },
+        ],
+      },
+      {
+        description: "Staining At The HP/LP Bi Turbo Joint",
+        opCode: "252472A",
+        variants: [
+          { engine: "2.0LPan Bi", qualifier: "INSPECT", opCode: "252472A", time: 0.2 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "252472B", time: 1.0 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "252472C", time: 5.1 },
+          { engine: "2.0LPan Bi", qualifier: "REPAIR/REPLACE", opCode: "252472D", time: 5.6 },
+        ],
+      },
+      {
+        description: "Aluminum Front Wheel Knuckles Bearing Failures or Front End Noises",
+        opCode: "252488A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252488A", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252488B", time: 0.9 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252488C", time: 1.5 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252488D", time: 0.8 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252488E", time: 1.4 },
+        ],
+      },
+      {
+        description: "B Pillar Ticking Sound with NEW Grab Handle Design",
+        opCode: "252553A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252553A", time: 1.0 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252553B", time: 1.8 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252553C", time: 1.2 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252553D", time: 2.2 },
+        ],
+      },
+      {
+        description: "Aluminum Front Wheel Knuckles Bearing Failures or Front End Noises",
+        opCode: "252582A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252582A", time: 0.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252582B", time: 0.8 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252582C", time: 1.4 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252582D", time: 0.7 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252582E", time: 1.1 },
+        ],
+      },
+      {
+        description: "360 Degree Camera and FLA Towing Mirrors - Reverse Brake Assist Not Available Message and or DTC",
+        opCode: "252634A",
+        variants: [
+          { engine: "ALL", qualifier: "INSPECT", opCode: "252634A", time: 0.5 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252634B", time: 0.6 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252634C", time: 0.3 },
+          { engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "252634D", time: 0.8 },
+        ],
+      },
+
+      // === Campaign/FSA 25Cxx series ===
+      {
+        description: "Update the DDM and PDM Software on all doors using FDRS",
+        opCode: "25C10B",
+        variants: [{ engine: "ALL", opCode: "25C10B", time: 0.4 }],
+      },
+      {
+        description: "Lincoln Vehicle Pickup and Delivery Allowance (25C10)",
+        opCode: "25C10LL",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25C10LL", time: 0.5 }],
+      },
+      {
+        description: "Mobile Service (25C10)",
+        opCode: "25C10MM",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25C10MM", time: 0.5 }],
+      },
+      {
+        description: "Ford Vehicle Pickup and Delivery Allowance (25C10)",
+        opCode: "25C10PP",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25C10PP", time: 0.5 }],
+      },
+      {
+        description: "PCM calibration software level check and Reductant Injector Replace",
+        opCode: "25C73B",
+        variants: [{ engine: "ALL", opCode: "25C73B", time: 0.7 }],
+      },
+      {
+        description: "PCM calibration software level check update and Reductant Injector Replace",
+        opCode: "25C73C",
+        variants: [{ engine: "ALL", opCode: "25C73C", time: 0.9 }],
+      },
+      {
+        description: "Ford Vehicle Pickup and Delivery Allowance (25C73)",
+        opCode: "25C73PP",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25C73PP", time: 0.5 }],
+      },
+
+      // === Campaign/FSA 25Nxx series ===
+      {
+        description: "Test battery using approved Ford battery tester - Battery fail Replace FLA battery with AGM - Update BCM configuration and associated sensors",
+        opCode: "25N06B",
+        variants: [{ engine: "ALL", opCode: "25N06B", time: 0.5 }],
+      },
+      {
+        description: "Mobile Service (25N06)",
+        opCode: "25N06MM",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25N06MM", time: 0.5 }],
+      },
+
+      // === Campaign/FSA 25Pxx series ===
+      {
+        description: "Software update to BCM or HCM",
+        opCode: "25P27B",
+        variants: [{ engine: "ALL", opCode: "25P27B", time: 0.2 }],
+      },
+
+      // === Campaign/FSA 25Sxx series ===
+      {
+        description: "Inspect engine lefthand camshaft sprocket and submit photos - If PASS FSA Completed Closed",
+        opCode: "25S39A",
+        variants: [{ engine: "ALL", opCode: "25S39A", time: 0.4 }],
+      },
+      {
+        description: "Inspect lefthand camshaft sprocket submit photos - If FAIL HOLD vehicle until full repair procedure parts available",
+        opCode: "25S39B",
+        variants: [{ engine: "ALL", opCode: "25S39B", time: 0.4 }],
+      },
+      {
+        description: "Inspect left hand camshaft sprocket and submit GCR with photos - If FAIL Replace lefthand camshaft sprocket and associated parts",
+        opCode: "25S39C",
+        variants: [{ engine: "ALL", opCode: "25S39C", time: 4.6 }],
+      },
+      {
+        description: "Ford Vehicle Pickup and Delivery Allowance (25S39)",
+        opCode: "25S39PP",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25S39PP", time: 0.5 }],
+      },
+      {
+        description: "All Vehicles Software at the latest level",
+        opCode: "25S49A",
+        variants: [{ engine: "ALL", opCode: "25S49A", time: 0.3 }],
+      },
+      {
+        description: "Attestation Labor Time to submit attestation form and close recall",
+        opCode: "25S49D",
+        variants: [{ engine: "ALL", opCode: "25S49D", time: 0.2 }],
+      },
+      {
+        description: "Lincoln Vehicle Pickup and Delivery Allowance (25S49)",
+        opCode: "25S49LL",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25S49LL", time: 0.5 }],
+      },
+      {
+        description: "Ford Vehicle Pickup and Delivery Allowance (25S49)",
+        opCode: "25S49PP",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25S49PP", time: 0.5 }],
+      },
+
+      // === Campaign/FSA 25SCx series ===
+      {
+        description: "Interim Repair Fuse removal - Will not close the FSA",
+        opCode: "25SC8B",
+        variants: [{ engine: "ALL", opCode: "25SC8B", time: 0.2 }],
+      },
+      {
+        description: "Inspect Solis wiring connectors - No Damage - rerouting of wiring harness and installing patch harness with relay - Will Close FSA",
+        opCode: "25SC8C",
+        variants: [{ engine: "ALL", opCode: "25SC8C", time: 1.0 }],
+      },
+      {
+        description: "Inspect Solis wiring connectors - Damage found - replace Solis wiring harness kit including ONE light - Includes installing patch harness with relay",
+        opCode: "25SC8D",
+        variants: [{ engine: "ALL", opCode: "25SC8D", time: 1.2 }],
+      },
+      {
+        description: "Inspect Solis wiring connectors - Damage found - replace Solis wiring harness kit including TWO lights - Includes installing patch harness with relay",
+        opCode: "25SC8E",
+        variants: [{ engine: "ALL", opCode: "25SC8E", time: 1.3 }],
+      },
+      {
+        description: "Mobile Service (25SC8)",
+        opCode: "25SC8MM",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25SC8MM", time: 0.5 }],
+      },
+      {
+        description: "Ford Vehicle Pickup and Delivery Allowance (25SC8)",
+        opCode: "25SC8PP",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25SC8PP", time: 0.5 }],
+      },
+
+      // === Campaign/FSA 25SFx series ===
+      {
+        description: "Update the PCM Calibration",
+        opCode: "25SF1B",
+        variants: [{ engine: "ALL", opCode: "25SF1B", time: 0.3 }],
+      },
+      {
+        description: "Mobile Service (25SF1)",
+        opCode: "25SF1MM",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25SF1MM", time: 0.5 }],
+      },
+      {
+        description: "Ford Vehicle Pickup and Delivery Allowance (25SF1)",
+        opCode: "25SF1PP",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "25SF1PP", time: 0.5 }],
+      },
+
+      // === Special codes ===
+      {
+        description: "Replace RAV (ReAcquired Vehicle) Warranty requested labor time",
+        opCode: "RAV",
+        variants: [{ engine: "ALL", opCode: "RAV", time: 1.0 }],
+      },
+      {
+        description: "Software Update Repair Validation",
+        opCode: "SRVZZ",
+        variants: [{ engine: "ALL", qualifier: "REPAIR/REPLACE", opCode: "SRVZZ", time: 0.2 }],
+      },
+
+      // === Original misc entries ===
       {
         description: "Additional - Misc. Repairs",
         opCode: "999A",
         baseTime: 0.2,
         notes: "This time can be used for work done by a third person.",
         variants: [{ engine: "ALL", opCode: "999A", time: 0.2 }],
-        overlaps: [],
       },
       {
         description: "Component Replacement - Prior Approval",
@@ -2744,7 +4169,6 @@ export const sltSections: SLTSection[] = [
         baseTime: 0.3,
         notes: "Includes time to contact hotline and complete online forms. Cannot be used for ESP claims.",
         variants: [{ engine: "ALL", opCode: "PRIOR", time: 0.3 }],
-        overlaps: [],
       },
     ],
   },
