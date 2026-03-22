@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   FileText,
   FileSpreadsheet,
+  BarChart3,
   Wrench,
   Car,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const navItems = [
   { title: "Scheduled Maintenance", url: "/maintenance", icon: Wrench },
   { title: "CCC Codes", url: "/ccc", icon: FileText },
   { title: "COR Generator", url: "/cor", icon: FileSpreadsheet },
+  { title: "Weekly Report", url: "/report", icon: BarChart3 },
 ];
 
 export function AppSidebar() {

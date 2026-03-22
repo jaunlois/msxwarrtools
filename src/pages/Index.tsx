@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Clock, Shield, AlertTriangle, Wrench, FileText, FileSpreadsheet } from "lucide-react";
+import { Clock, Shield, AlertTriangle, Wrench, FileText, FileSpreadsheet, BarChart3 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { sltSections } from "@/data/slt-data";
 import { partsData } from "@/data/parts-data";
@@ -46,6 +46,13 @@ const modules = [
     icon: FileSpreadsheet,
     href: "/cor",
     stat: "Excel export",
+  },
+  {
+    title: "Weekly Report",
+    description: "Upload Age Analysis, SBI PDFs, and WIP files to generate weekly warranty reports",
+    icon: BarChart3,
+    href: "/report",
+    stat: "Auto-match SBI",
   },
 ];
 
