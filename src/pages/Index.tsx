@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Clock, Shield, AlertTriangle, Wrench, FileText, FileSpreadsheet } from "lucide-react";
+import { Clock, Shield, AlertTriangle, Wrench, FileText, FileSpreadsheet, BarChart3 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { sltSections } from "@/data/slt-data";
 import { partsData } from "@/data/parts-data";
