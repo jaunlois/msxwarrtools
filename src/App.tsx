@@ -29,6 +29,7 @@ const App = () => (
             <Route path="/overlaps" element={<OverlapChecker />} />
             <Route path="/maintenance" element={<ScheduledMaintenance />} />
             <Route path="/ccc" element={<CCCCodes />} />
+            <Route path="/cor" element={<CORGenerator />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

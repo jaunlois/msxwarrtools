@@ -40,6 +40,13 @@ const modules = [
     href: "/ccc",
     stat: "200+ codes",
   },
+  {
+    title: "COR Generator",
+    description: "Generate Prior Approval cost of repair Excel forms for Ford Protect claims",
+    icon: FileSpreadsheet,
+    href: "/cor",
+    stat: "Excel export",
+  },
 ];
 
 const Index = () => {
