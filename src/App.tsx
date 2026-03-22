@@ -10,6 +10,7 @@ import PartsCoverage from "./pages/PartsCoverage";
 import OverlapChecker from "./pages/OverlapChecker";
 import ScheduledMaintenance from "./pages/ScheduledMaintenance";
 import CCCCodes from "./pages/CCCCodes";
+import CORGenerator from "./pages/CORGenerator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/overlaps" element={<OverlapChecker />} />
             <Route path="/maintenance" element={<ScheduledMaintenance />} />
             <Route path="/ccc" element={<CCCCodes />} />
+            <Route path="/cor" element={<CORGenerator />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

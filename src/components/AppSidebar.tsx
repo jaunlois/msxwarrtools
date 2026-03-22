@@ -4,6 +4,7 @@ import {
   Clock,
   AlertTriangle,
   FileText,
+  FileSpreadsheet,
   Wrench,
   Car,
 } from "lucide-react";
@@ -31,6 +32,7 @@ const navItems = [
   { title: "Overlap Checker", url: "/overlaps", icon: AlertTriangle },
   { title: "Scheduled Maintenance", url: "/maintenance", icon: Wrench },
   { title: "CCC Codes", url: "/ccc", icon: FileText },
+  { title: "COR Generator", url: "/cor", icon: FileSpreadsheet },
 ];
 
 export function AppSidebar() {

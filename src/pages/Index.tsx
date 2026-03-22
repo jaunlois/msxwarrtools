@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Clock, Shield, AlertTriangle, Wrench, FileText } from "lucide-react";
+import { Clock, Shield, AlertTriangle, Wrench, FileText, FileSpreadsheet } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { sltSections } from "@/data/slt-data";
 import { partsData } from "@/data/parts-data";
@@ -39,6 +39,13 @@ const modules = [
     icon: FileText,
     href: "/ccc",
     stat: "200+ codes",
+  },
+  {
+    title: "COR Generator",
+    description: "Generate Prior Approval cost of repair Excel forms for Ford Protect claims",
+    icon: FileSpreadsheet,
+    href: "/cor",
+    stat: "Excel export",
   },
 ];
 
