@@ -10,6 +10,7 @@ import PartsCoverage from "./pages/PartsCoverage";
 import OverlapChecker from "./pages/OverlapChecker";
 import ScheduledMaintenance from "./pages/ScheduledMaintenance";
 import CCCCodes from "./pages/CCCCodes";
+import CORGenerator from "./pages/CORGenerator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
