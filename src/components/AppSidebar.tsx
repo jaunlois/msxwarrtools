@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   FileText,
   FileSpreadsheet,
+  BarChart3,
   Wrench,
   Car,
 } from "lucide-react";
