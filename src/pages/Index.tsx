@@ -47,6 +47,13 @@ const modules = [
     href: "/cor",
     stat: "Excel export",
   },
+  {
+    title: "Weekly Report",
+    description: "Upload Age Analysis, SBI PDFs, and WIP files to generate weekly warranty reports",
+    icon: BarChart3,
+    href: "/report",
+    stat: "Auto-match SBI",
+  },
 ];
 
 const Index = () => {
