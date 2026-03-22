@@ -4,6 +4,7 @@ import {
   Clock,
   AlertTriangle,
   FileText,
+  FileSpreadsheet,
   Wrench,
   Car,
 } from "lucide-react";
