@@ -31,6 +31,7 @@ const App = () => (
             <Route path="/maintenance" element={<ScheduledMaintenance />} />
             <Route path="/ccc" element={<CCCCodes />} />
             <Route path="/cor" element={<CORGenerator />} />
+            <Route path="/report" element={<WeeklyReport />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
