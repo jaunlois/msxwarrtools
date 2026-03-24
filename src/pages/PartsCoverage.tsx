@@ -58,7 +58,7 @@ export default function PartsCoverage() {
             className="pl-9 bg-card"
           />
         </div>
-        <Select value={planFilter} onValueChange={setPlanFilter}>
+        <Select value={planFilter} onValueChange={handlePlanFilter}>
           <SelectTrigger className="w-full sm:w-56 bg-card">
             <SelectValue placeholder="Filter by plan" />
           </SelectTrigger>
