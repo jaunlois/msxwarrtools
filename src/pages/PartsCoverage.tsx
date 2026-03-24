@@ -54,7 +54,7 @@ export default function PartsCoverage() {
           <Input
             placeholder="Search by part number or description..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             className="pl-9 bg-card"
           />
         </div>
