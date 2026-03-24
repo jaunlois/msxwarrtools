@@ -74,7 +74,7 @@ export default function PartsCoverage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Showing {filtered.length} of {partsData.length} parts
+        Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length} parts (from {partsData.length} total)
       </p>
 
       <Card className="ford-card overflow-hidden">
