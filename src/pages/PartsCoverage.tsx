@@ -124,7 +124,28 @@ export default function PartsCoverage() {
           )}
         </CardContent>
       </Card>
-    </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <button
+            onClick={() => setPage(Math.max(0, page - 1))}
+            disabled={page === 0}
+            className="px-3 py-1 text-xs rounded bg-muted text-muted-foreground disabled:opacity-30 hover:bg-accent"
+          >
+            ← Prev
+          </button>
+          <span className="text-xs text-muted-foreground">
+            Page {page + 1} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+            disabled={page >= totalPages - 1}
+            className="px-3 py-1 text-xs rounded bg-muted text-muted-foreground disabled:opacity-30 hover:bg-accent"
+          >
+            Next →
+          </button>
+        </div>
+      )}
   );
 }
 
