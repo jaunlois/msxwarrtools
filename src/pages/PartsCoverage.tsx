@@ -10,6 +10,8 @@ import { partsData, type PlanTier, planTierLabels, getHighestPlan } from "@/data
 export default function PartsCoverage() {
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 100;
 
   const filtered = useMemo(() => {
     let result = partsData;
@@ -29,6 +31,13 @@ export default function PartsCoverage() {
 
     return result;
   }, [search, planFilter]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  // Reset page when filters change
+  const handleSearch = (val: string) => { setSearch(val); setPage(0); };
+  const handlePlanFilter = (val: string) => { setPlanFilter(val); setPage(0); };
 
   return (
     <div className="space-y-4">
