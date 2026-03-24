@@ -146,6 +146,7 @@ export default function PartsCoverage() {
           </button>
         </div>
       )}
+    </div>
   );
 }
 
