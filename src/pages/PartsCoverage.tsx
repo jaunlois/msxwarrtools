@@ -10,6 +10,8 @@ import { partsData, type PlanTier, planTierLabels, getHighestPlan } from "@/data
 export default function PartsCoverage() {
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 100;
 
   const filtered = useMemo(() => {
     let result = partsData;
@@ -30,6 +32,13 @@ export default function PartsCoverage() {
     return result;
   }, [search, planFilter]);
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  // Reset page when filters change
+  const handleSearch = (val: string) => { setSearch(val); setPage(0); };
+  const handlePlanFilter = (val: string) => { setPlanFilter(val); setPage(0); };
+
   return (
     <div className="space-y-4">
       <div>
@@ -45,11 +54,11 @@ export default function PartsCoverage() {
           <Input
             placeholder="Search by part number or description..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             className="pl-9 bg-card"
           />
         </div>
-        <Select value={planFilter} onValueChange={setPlanFilter}>
+        <Select value={planFilter} onValueChange={handlePlanFilter}>
           <SelectTrigger className="w-full sm:w-56 bg-card">
             <SelectValue placeholder="Filter by plan" />
           </SelectTrigger>
@@ -65,7 +74,7 @@ export default function PartsCoverage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Showing {filtered.length} of {partsData.length} parts
+        Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length} parts (from {partsData.length} total)
       </p>
 
       <Card className="ford-card overflow-hidden">
@@ -83,7 +92,7 @@ export default function PartsCoverage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((part) => (
+              {paged.map((part) => (
                 <TableRow key={part.partNumber}>
                   <TableCell className="font-mono text-xs text-primary">
                     {part.partNumber}
@@ -115,6 +124,28 @@ export default function PartsCoverage() {
           )}
         </CardContent>
       </Card>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <button
+            onClick={() => setPage(Math.max(0, page - 1))}
+            disabled={page === 0}
+            className="px-3 py-1 text-xs rounded bg-muted text-muted-foreground disabled:opacity-30 hover:bg-accent"
+          >
+            ← Prev
+          </button>
+          <span className="text-xs text-muted-foreground">
+            Page {page + 1} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+            disabled={page >= totalPages - 1}
+            className="px-3 py-1 text-xs rounded bg-muted text-muted-foreground disabled:opacity-30 hover:bg-accent"
+          >
+            Next →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
