@@ -92,7 +92,7 @@ export default function PartsCoverage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((part) => (
+              {paged.map((part) => (
                 <TableRow key={part.partNumber}>
                   <TableCell className="font-mono text-xs text-primary">
                     {part.partNumber}
