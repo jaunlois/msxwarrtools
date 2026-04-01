@@ -10,7 +10,7 @@ import PartsCoverage from "./pages/PartsCoverage";
 import OverlapChecker from "./pages/OverlapChecker";
 import ScheduledMaintenance from "./pages/ScheduledMaintenance";
 import CCCCodes from "./pages/CCCCodes";
-import CORGenerator from "./pages/CORGenerator";
+import ClaimProcessor from "./pages/ClaimProcessor";
 import WeeklyReport from "./pages/WeeklyReport";
 import NotFound from "./pages/NotFound";
 
@@ -30,7 +30,7 @@ const App = () => (
             <Route path="/overlaps" element={<OverlapChecker />} />
             <Route path="/maintenance" element={<ScheduledMaintenance />} />
             <Route path="/ccc" element={<CCCCodes />} />
-            <Route path="/cor" element={<CORGenerator />} />
+            <Route path="/cor" element={<ClaimProcessor />} />
             <Route path="/report" element={<WeeklyReport />} />
           </Route>
           <Route path="*" element={<NotFound />} />
