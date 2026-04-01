@@ -1,53 +1,70 @@
 
 
-## Plan: Expand SLT Dataset, Add CCC Codes Page, Verify All Works
+## Plan: Warranty Claim Processor — Document Upload, Auto-Extract, Multi-Output Generator
 
-### 1. Massively expand SLT data in `src/data/slt-data.ts`
+### Overview
 
-Add all missing operations from the user's provided sections across conversations. Currently ~60 operations exist as a "representative sample." Will expand to include the full detailed operations provided:
+Transform the COR Generator into a comprehensive **Warranty Claim Processor** that accepts uploaded BSI documents (Front Page/Quote/Back Page/OASIS/Warranty History), auto-extracts claim data, identifies warranty vs cash lines, checks for repeat repairs, and generates multiple output files — each named with the BSI claim number (e.g. `B12281-Cost of Repair.xlsx`, `B12281-AWA.xlsx`).
 
-**Section 01 (Wheels):** Add 1007A (Tire/Wheel R&I with quantity variants), 1007D (NVH Diagnosis with full combinations for Driveshaft Balance/Replace), 1012A (Wheel Nuts), 1015D (Wheel Balance), 1107A (Front Hub Bolts), 1130A (Hub Cap), 1177A (Rear Wheel Bearing Seal), 1552A (TPMS Sensor), 2134A (Front Hub/Bearing), 1999X5, plus all their overlap rules, supplements, and combinations.
+### Key Features
 
-**Section 07 (Transmission):** Expand with 7000A (full R&I with engine/drivetrain variants and many combinations: overhaul, converter, front pump, valve body, cooler flush), 7001D (Diagnosis with combinations), 7003B (Transfer Case/PTU), 7095C (Oil Cooler), 7191A (Pan/Gasket), 7210A (Gear Selector), 7215A (Output Shaft Seal), 7326C (Linkage Adjust), 7395A (Shift Cable), 7453D (4WD Diagnosis with combinations).
+1. **Document Upload & Auto-Parse** — Upload Front Page (PDF), Back Page (PDF), Quote (PDF), OASIS Report (PDF), Warranty History (PDF). Parser extracts: BSI claim number, RO number, VIN, customer name, vehicle model, mileage, warranty start date, engine number, reg number, warranty lines (ignoring CSH/cash lines), parts with codes/descriptions/quantities/prices, labor op codes and hours, technician comments (complaint/cause/correction).
 
-**Section 08 (Cooling):** Add 8080A (Expansion Tank), 8100A (Radiator Cap), 8200A (Grille), 8260A (Radiator Hose), 8419A (Electric Water Pump), 8509A (Water Pump Pulley), 8678A (Idler Pulley), 9468B/9469A (Turbo Coolant Lines), 8999X5.
+2. **Paste-in Parts** — Replace the one-at-a-time parts input with a textarea that accepts pasted tab-delimited or comma-separated parts data (code, description, qty, unit price per line), auto-parsed into the parts table.
 
-**Section 09 (Fuel):** Add 9002A combinations (Fuel Tank Replace, Electric Fuel Pump), 9030A, 9034A, 9047A, 9278A (Oil Pressure Sending Unit), 9282C/9282E, 9424A combinations (Intake Manifold Replace), 9430A, 9440A (Turbo Oil Supply), 9456A (EGR Cooler), 9470P, 9515A (Turbo Oil Return), 9527B (Injector O-Ring), 9600A, 9601A, 9675A, 9735A, 9936A.
+3. **SLT Labor Code Matching** — From the quote's operation codes (e.g. `18124A`, `4602AA`, `3010B+3010E`) and the back page tech write-up, automatically look up matching SLT labor codes from the existing `slt-data.ts` dataset.
 
-**Section 10 (Electrical):** Add 10654C combinations (Battery Replace/Disconnect), 10732A (Battery Tray), 11572A (Ignition Switch), 11582A, 12222A, 12342D1/D2 (Glow Plugs), 12650D full combinations (PCM, ECT, MAP, MAF, EGR, Throttle Body, Fuel Injectors, Crankshaft/Camshaft sensors, DPF sensors, NOx sensors, Grille Shutters), 12651D full combinations (BCM, SJB, Parking Aid, Door Modules, IPMA, TCU, Gateway, IPC), 12652A/D (SYNC), 13007A (Headlamp Align), 13021A (Bulbs), 13404A, 13465, 13480A, 13550A, 13613A, 13832A (Horn), 14028A (Door Lock Switch), 14056D full combinations (RCM, Sensors, Air Bags, Clockspring, Side Curtain), 14300A/14301A (Battery Cables), 14350A, 14526C, 14529A, 14547A, 14701A, 15200A (Fog Lamps), 15607A/B/C/D (PATS Keys), 15790A (Moon Roof), 17707B (Mirror Glass with Motor combo), 18936A (Satellite Antenna), 19490A (Rear Camera).
+4. **CCC Code Detection** — From the back page complaint text and quote descriptions, suggest matching Customer Concern Codes and Condition Codes from `ccc-data.ts`.
 
-**Section 11 (Body & Electrical Aux):** Add 04178A, 16450A, 17526A, 17528A, 17566A, 17593A, 17597A, 17603A/B, 17618A, 17649A, 17664A, 17682C, 17700A, 17835A, 17957A, 18124A/18125A (Shocks with Spring combo), 18472A (Heater Hose), 18476A, 18805E, 18808A (Speakers), 18886A, 19619A (Pollen Filter), 19700A full combinations (A/C Compressor, Condenser, Evaporator, Expansion Valve, Dehydrator, Lines, Flush), 19700D combinations (Climate Control), 19893A (Registers).
+5. **Warranty History Check** — Parse warranty history PDF and flag any previous repairs with matching part prefixes or similar operation descriptions (repeat repair warning).
 
-**Section 12 (Body):** Add 02010A, 02228A, 02344A, 03100A, 03512A, 04104A, 04320A/B, 04470A, 04536A/B, 06024A, 11582A, 16038A, 16102A, 16612A/B/D, 16700A, 16916B, 17709B, 22050B, 22404A/B, 23943A full combinations (Trim, Latch, Regulator, Motor, Glass, Door Check), 24356A, 27406B full combinations (Rear Door Trim, Latch, Regulator), 27936A, 31002A, 31012A, 40442A, 40526A, 40610A, 42006C, 43121A combinations, 44210A, 46404B combinations, 50026A, 50222A, 50282B, 51916A/B, 51958A, 60044A, 61108A, 61164A, 61168A, 61202A, 62486A, 63100A combinations (Seat Track, Trim Covers, Cushion), 63100B, 63200A, 69000A.
+6. **Per-Line Output Generation** — Each warranty repair line on the quote generates its own set of files:
+   - **COR Excel** — Matching the existing `Cost_of_Repair.xlsx` format exactly (with FOB, Mark Up, Parts Cap columns)
+   - **AWA Excel** — Matching `AWA_FORM_MASTER_BETHLEHEM.xlsx` format exactly (3 sheets: form, service history, exclusions)
+   - **OWS Claim PDF** — Matching the Ford OWS claim format (Claim Information header, Repair Order section, Comments, Parts/Labor/Misc tables, Repair Line SubTotal)
 
-All with complete overlap rules from the provided data.
+7. **File Naming** — All downloads named as `B{claimNumber}-{type}` e.g. `B12281-Cost of Repair.xlsx`, `B12281-AWA.xlsx`, `B12281-OWS Claim.pdf`. Uploaded files are also downloadable renamed to the claim.
 
-### 2. Create CCC (Customer Concern Codes) data and page
+### Files to Create/Modify
 
-**New file: `src/data/ccc-data.ts`**
-- Define ~300 Customer Concern Codes extracted from the CCC_Jaun-Lois.html data provided earlier
-- Include code, description, and condition code categories (A-Z)
-- Condition codes reference table
+**New files:**
+- `src/lib/claim-processor/parseQuote.ts` — Parse BSI quote PDF: extract warranty lines (payment method = WAR), parts per line, labor op codes, customer/vehicle info
+- `src/lib/claim-processor/parseBackPage.ts` — Parse back page PDF: extract technician comments (complaint/cause/correction per line)
+- `src/lib/claim-processor/parseFrontPage.ts` — Parse front page/jobcard PDF: extract BSI number, RO number
+- `src/lib/claim-processor/parseOasis.ts` — Parse OASIS report: vehicle description, warranty dates, ESP coverage, outstanding FSAs
+- `src/lib/claim-processor/parseWarrantyHistory.ts` — Parse warranty history: extract all previous claim records, check for repeat repairs
+- `src/lib/claim-processor/matchSLT.ts` — Match operation codes against SLT data, suggest CCC codes
+- `src/lib/claim-processor/types.ts` — Shared types for parsed claim data
+- `src/lib/claim-processor/generateAWA.ts` — Generate AWA Excel matching the master template exactly
+- `src/lib/claim-processor/generateOWS.ts` — Generate OWS claim matching the Ford format
+- `src/pages/ClaimProcessor.tsx` — New full-page UI replacing the simple COR form
 
-**New file: `src/pages/CCCCodes.tsx`**
-- Searchable table of all CCC codes
-- Filter by condition code letter
-- Quick-copy code to clipboard on click
-- Clean dark-themed table matching existing UI
+**Modified files:**
+- `src/lib/cor-excel-export.ts` — Update COR format to match the uploaded template exactly (add FOB, Mark Up, Parts Cap columns; update layout)
+- `src/App.tsx` — Update `/cor` route to use new ClaimProcessor page
+- `src/components/AppSidebar.tsx` — Update nav label from "COR Generator" to "Claim Processor"
+- `src/pages/Index.tsx` — Update dashboard card
 
-### 3. Update navigation and routing
+### UI Flow
 
-- Add CCC Codes to `AppSidebar.tsx` nav items (with `FileText` icon)
-- Add route in `App.tsx` for `/ccc`
-- Add CCC module card to `Index.tsx` dashboard
-
-### 4. Expand parts-data.ts
-
-The uploaded HTML contains ~3,000+ parts in the embedded JSON. Will parse and include the full dataset instead of the current ~55 representative samples.
+1. **Upload Zone** — Drop/select files: Quote, Back Page, Front Page, OASIS, Warranty History (all optional but Quote is primary)
+2. **Auto-Extract** — On upload, parse PDFs and populate a review form with:
+   - Vehicle/customer info (from quote + OASIS)
+   - Detected warranty repair lines (ignoring cash lines)
+   - Parts per line (with paste-in override)
+   - Matched SLT labor codes and suggested CCC codes
+   - Warranty history warnings (repeat repairs highlighted in red)
+3. **Review & Edit** — User reviews/adjusts extracted data, selects CCC codes, edits tech write-up
+4. **Generate** — Buttons to generate per warranty line: COR Excel, AWA Excel, OWS Claim. Also a "Download All" that zips everything.
+5. **Renamed Downloads** — All uploaded files available for re-download with claim-number prefix naming
 
 ### Technical Notes
-- SLT data file will grow significantly (~3,000+ lines) to accommodate all operations
-- Parts data will expand from ~55 to ~3,000+ entries
-- All overlap rules will be preserved for the Overlap Checker validation engine
-- No new dependencies required
+
+- PDF parsing uses `pdfjs-dist` (already installed) for text extraction
+- Excel generation uses `exceljs` (already installed)
+- OWS PDF generation will use a simple HTML-to-download approach or construct via the existing PDF tools
+- The COR Excel must match the uploaded template: PARTS table has columns (PARTS, Description, Qnt, FOB, Mark Up, Total) with the R5000 parts cap note; LABOR table has (Ser, Op. code, Lab Hours, Amount, TOTAL)
+- AWA Excel must have 3 sheets matching the master: main form with loyalty questions (Yes/No), service history sheet, CLP exclusions sheet
+- Cash lines (Payment Method = CSH) on the quote are filtered out automatically
+- File naming extracts BSI number from quote (e.g. `B-0012281` becomes `B12281`)
 
