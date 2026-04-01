@@ -23,7 +23,7 @@ export function matchSLTCode(opCode: string): SLTMatch | null {
   for (const section of sltSections) {
     for (const op of section.operations) {
       if (op.opCode.includes(normalizedCode) || normalizedCode.includes(op.opCode.replace(/\s+/g, "").toUpperCase())) {
-        const hours = op.variants?.length ? op.variants[0].hours : 0;
+        const hours = op.variants?.length ? op.variants[0].time : 0;
         return {
           opCode: op.opCode,
           description: op.description,
