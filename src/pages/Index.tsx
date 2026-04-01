@@ -41,11 +41,11 @@ const modules = [
     stat: "200+ codes",
   },
   {
-    title: "COR Generator",
-    description: "Generate Prior Approval cost of repair Excel forms for Ford Protect claims",
+    title: "Claim Processor",
+    description: "Upload BSI docs to auto-generate COR, AWA & OWS claim files per warranty line",
     icon: FileSpreadsheet,
     href: "/cor",
-    stat: "Excel export",
+    stat: "Multi-output",
   },
   {
     title: "Weekly Report",
