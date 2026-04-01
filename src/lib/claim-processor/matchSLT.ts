@@ -8,7 +8,7 @@ export function matchSLTCode(opCode: string): SLTMatch | null {
     for (const op of section.operations) {
       if (op.opCode.replace(/\s+/g, "").toUpperCase() === normalizedCode) {
         // Get hours from first variant or base
-        const hours = op.variants?.length ? op.variants[0].hours : 0;
+        const hours = op.variants?.length ? op.variants[0].time : 0;
         return {
           opCode: op.opCode,
           description: op.description,
