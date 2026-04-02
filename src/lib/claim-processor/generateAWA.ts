@@ -35,7 +35,7 @@ function s(cell: ExcelJS.Cell, value: any, opts?: { bold?: boolean; size?: numbe
   cell.alignment = { vertical: "top", wrapText: true, horizontal: opts?.align || "left" };
 }
 
-export async function generateAWA(data: AWAFormData, claimNumber: string): Promise<string> {
+export async function generateAWA(data: AWAFormData, claimNumber: string, returnBlob?: boolean): Promise<string | { blob: Blob; fileName: string }> {
   const wb = new ExcelJS.Workbook();
   wb.creator = "Ford Service Tool - AWA Generator";
 
