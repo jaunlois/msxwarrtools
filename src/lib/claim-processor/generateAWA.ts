@@ -282,6 +282,8 @@ export async function generateAWA(data: AWAFormData, claimNumber: string, return
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const fileName = `${claimNumber}-AWA.xlsx`;
+  if (returnBlob) return { blob, fileName };
   saveAs(blob, fileName);
   return fileName;
 }
+

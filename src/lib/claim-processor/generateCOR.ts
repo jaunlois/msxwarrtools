@@ -33,7 +33,7 @@ function h(cell: ExcelJS.Cell, value: any, opts?: { bold?: boolean; size?: numbe
   cell.alignment = { vertical: "top", wrapText: true };
 }
 
-export async function generateCOR(data: CORExportData, claimNumber: string): Promise<string> {
+export async function generateCOR(data: CORExportData, claimNumber: string, returnBlob?: boolean): Promise<string | { blob: Blob; fileName: string }> {
   const wb = new ExcelJS.Workbook();
 
   // ===== Sheet 1: COR Form =====

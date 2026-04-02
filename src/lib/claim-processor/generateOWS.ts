@@ -102,6 +102,8 @@ export function generateOWSClaim(data: OWSClaimData, claimNumber: string, return
 
   const blob = new Blob([html], { type: "text/html" });
   const fileName = `${claimNumber}-OWS Claim Line ${data.lineNumber}.html`;
+  if (returnBlob) return { blob, fileName };
   saveAs(blob, fileName);
   return fileName;
 }
+
