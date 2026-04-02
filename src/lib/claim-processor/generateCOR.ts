@@ -33,7 +33,7 @@ function h(cell: ExcelJS.Cell, value: any, opts?: { bold?: boolean; size?: numbe
   cell.alignment = { vertical: "top", wrapText: true };
 }
 
-export async function generateCOR(data: CORExportData, claimNumber: string): Promise<string> {
+export async function generateCOR(data: CORExportData, claimNumber: string, returnBlob?: boolean): Promise<string | { blob: Blob; fileName: string }> {
   const wb = new ExcelJS.Workbook();
 
   // ===== Sheet 1: COR Form =====
@@ -240,6 +240,8 @@ export async function generateCOR(data: CORExportData, claimNumber: string): Pro
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const fileName = `${claimNumber}-Cost of Repair.xlsx`;
+  if (returnBlob) return { blob, fileName };
   saveAs(blob, fileName);
   return fileName;
 }
+

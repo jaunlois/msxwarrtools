@@ -19,7 +19,7 @@ export interface OWSClaimData {
   lineNumber: number;
 }
 
-export function generateOWSClaim(data: OWSClaimData, claimNumber: string): string {
+export function generateOWSClaim(data: OWSClaimData, claimNumber: string, returnBlob?: boolean): string | { blob: Blob; fileName: string } {
   const line = data.repairLine;
   const partsTotal = line.parts.reduce((s, p) => s + p.qty * p.unitPrice, 0);
   const labourTotal = line.labourAmount;
@@ -102,6 +102,8 @@ export function generateOWSClaim(data: OWSClaimData, claimNumber: string): strin
 
   const blob = new Blob([html], { type: "text/html" });
   const fileName = `${claimNumber}-OWS Claim Line ${data.lineNumber}.html`;
+  if (returnBlob) return { blob, fileName };
   saveAs(blob, fileName);
   return fileName;
 }
+

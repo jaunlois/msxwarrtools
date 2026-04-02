@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,7 @@ import {
   type CCCMatch,
 } from "@/lib/claim-processor/types";
 import { saveAs } from "file-saver";
+import JSZip from "jszip";
 
 interface UploadedFile {
   file: File;
@@ -207,13 +208,27 @@ export default function ClaimProcessor() {
     saveAs(uf.file, newName);
   };
 
-  // Generate handlers
+  // Generate handlers (use shared build* helpers below)
   const handleGenerateCOR = async (lineIndex: number) => {
+    await generateCOR(buildCORData(lineIndex), claimNumber || "DRAFT");
+    toast({ title: "COR Generated", description: `Line ${warrantyLines[lineIndex].itemNumber} COR downloaded` });
+  };
+
+  const handleGenerateAWA = async (lineIndex: number) => {
+    await generateAWA(buildAWAData(lineIndex), claimNumber || "DRAFT");
+    toast({ title: "AWA Generated", description: `Line ${warrantyLines[lineIndex].itemNumber} AWA downloaded` });
+  };
+
+  const handleGenerateOWS = (lineIndex: number) => {
+    generateOWSClaim(buildOWSData(lineIndex), claimNumber || "DRAFT");
+    toast({ title: "OWS Generated", description: `Line ${warrantyLines[lineIndex].itemNumber} OWS claim downloaded` });
+  };
+
+  const buildCORData = (lineIndex: number): CORExportData => {
     const line = warrantyLines[lineIndex];
     const comments = getLineComment(line.itemNumber);
     const labourRate = 764;
-
-    const corData: CORExportData = {
+    return {
       dealershipName: dealer.name,
       branch: dealer.branch,
       dealerCode: dealer.code,
@@ -231,106 +246,77 @@ export default function ClaimProcessor() {
       complaint: comments.complaint || line.operationDescription,
       comment: comments.cause || "",
       parts: line.parts.map(p => ({
-        code: p.code,
-        description: p.description,
-        qty: p.qty,
-        fob: p.unitPrice,
-        markup: 0,
-        total: p.qty * p.unitPrice,
+        code: p.code, description: p.description, qty: p.qty,
+        fob: p.unitPrice, markup: 0, total: p.qty * p.unitPrice,
       })),
-      labour: [{
-        serial: 1,
-        opCode: line.opCode,
-        hours: line.labourHours,
-        amount: line.labourHours * labourRate,
-      }],
+      labour: [{ serial: 1, opCode: line.opCode, hours: line.labourHours, amount: line.labourHours * labourRate }],
       claimTotal: line.parts.reduce((s, p) => s + p.qty * p.unitPrice, 0) + (line.labourHours * labourRate),
       causeDetailed: comments.cause,
       correction: comments.correction,
     };
-
-    await generateCOR(corData, claimNumber || "DRAFT");
-    toast({ title: "COR Generated", description: `Line ${line.itemNumber} COR downloaded` });
   };
 
-  const handleGenerateAWA = async (lineIndex: number) => {
+  const buildAWAData = (lineIndex: number): AWAFormData => {
     const line = warrantyLines[lineIndex];
     const comments = getLineComment(line.itemNumber);
-
-    // Build service history from warranty history
     const serviceHistory = warrantyHistory?.entries
       .filter(e => e.trxCode === "8159S" || e.customerComments.toLowerCase().includes("service"))
-      .map(e => ({
-        date: e.repairDate,
-        mileage: e.distance,
-        service: e.customerComments,
-      })) || [];
-
-    const awaData: AWAFormData = {
-      dealershipName: dealer.name,
-      branch: dealer.branch,
-      dealerCode: dealer.code,
-      todaysDate: new Date().toISOString().split("T")[0],
-      phone: dealer.phone,
-      email: dealer.email,
-      customerName: vehicle.customerName,
-      vehicleType: vehicle.vehicleModel,
-      vehicleYear: vehicle.deliveryDate || "",
-      monthsOld: "",
-      vin: vehicle.vin,
-      regNo: vehicle.regNo,
-      roNumber,
-      roDate: new Date().toISOString().split("T")[0],
-      fleetCode: "",
-      fleetName: "",
-      warrantyStartDate: vehicle.warrantyStartDate,
-      currentKilometers: vehicle.kilometers,
+      .map(e => ({ date: e.repairDate, mileage: e.distance, service: e.customerComments })) || [];
+    return {
+      dealershipName: dealer.name, branch: dealer.branch, dealerCode: dealer.code,
+      todaysDate: new Date().toISOString().split("T")[0], phone: dealer.phone, email: dealer.email,
+      customerName: vehicle.customerName, vehicleType: vehicle.vehicleModel,
+      vehicleYear: vehicle.deliveryDate || "", monthsOld: "", vin: vehicle.vin, regNo: vehicle.regNo,
+      roNumber, roDate: new Date().toISOString().split("T")[0], fleetCode: "", fleetName: "",
+      warrantyStartDate: vehicle.warrantyStartDate, currentKilometers: vehicle.kilometers,
       customerPhone: vehicle.phone,
       complaint: comments.complaint || line.operationDescription,
       justification: `Kindly assist with AWA for ${line.operationDescription.toLowerCase()} if possible.`,
-      loyaltyAnswers: [true, false, true, true, true, false],
-      ifYesPreviousAWA: "",
-      serviceHistory,
+      loyaltyAnswers: [true, false, true, true, true, false], ifYesPreviousAWA: "", serviceHistory,
     };
-
-    await generateAWA(awaData, claimNumber || "DRAFT");
-    toast({ title: "AWA Generated", description: `Line ${line.itemNumber} AWA downloaded` });
   };
 
-  const handleGenerateOWS = (lineIndex: number) => {
+  const buildOWSData = (lineIndex: number) => {
     const line = warrantyLines[lineIndex];
     const comments = getLineComment(line.itemNumber);
-
-    generateOWSClaim({
-      roNumber,
-      roDate: new Date().toISOString().split("T")[0],
-      vin: vehicle.vin,
-      regNo: vehicle.regNo,
-      vehicleModel: vehicle.vehicleModel,
-      kilometers: vehicle.kilometers,
-      customerName: vehicle.customerName,
-      warrantyStartDate: vehicle.warrantyStartDate,
-      dealerCode: dealer.code,
-      dealerName: dealer.name,
-      repairLine: line,
-      complaint: comments.complaint || line.operationDescription,
-      cause: comments.cause || "",
-      correction: comments.correction || "",
-      lineNumber: line.itemNumber,
-    }, claimNumber || "DRAFT");
-
-    toast({ title: "OWS Generated", description: `Line ${line.itemNumber} OWS claim downloaded` });
+    return {
+      roNumber, roDate: new Date().toISOString().split("T")[0],
+      vin: vehicle.vin, regNo: vehicle.regNo, vehicleModel: vehicle.vehicleModel,
+      kilometers: vehicle.kilometers, customerName: vehicle.customerName,
+      warrantyStartDate: vehicle.warrantyStartDate, dealerCode: dealer.code, dealerName: dealer.name,
+      repairLine: line, complaint: comments.complaint || line.operationDescription,
+      cause: comments.cause || "", correction: comments.correction || "", lineNumber: line.itemNumber,
+    };
   };
 
   const handleGenerateAll = async () => {
     setLoading(true);
     try {
+      const cn = claimNumber || "DRAFT";
+      const zip = new JSZip();
+
       for (let i = 0; i < warrantyLines.length; i++) {
-        await handleGenerateCOR(i);
-        await handleGenerateAWA(i);
-        handleGenerateOWS(i);
+        const corResult = await generateCOR(buildCORData(i), cn, true);
+        if (typeof corResult !== "string") zip.file(corResult.fileName, corResult.blob);
+
+        const awaResult = await generateAWA(buildAWAData(i), cn, true);
+        if (typeof awaResult !== "string") zip.file(awaResult.fileName, awaResult.blob);
+
+        const owsResult = generateOWSClaim(buildOWSData(i), cn, true);
+        if (typeof owsResult !== "string") zip.file(owsResult.fileName, owsResult.blob);
       }
-      toast({ title: "All Files Generated", description: `${warrantyLines.length * 3} files downloaded` });
+
+      // Add renamed uploaded files
+      for (const uf of uploadedFiles) {
+        const ext = uf.file.name.split(".").pop();
+        const typeLabel = uf.type === "quote" ? "Quote" : uf.type === "backpage" ? "Back Page" : uf.type === "frontpage" ? "Front Page" : uf.type === "oasis" ? "OASIS Report" : uf.type === "warranty_history" ? "Warranty History" : uf.file.name.replace(`.${ext}`, "");
+        const newName = `${cn}-${typeLabel}.${ext}`;
+        zip.file(newName, uf.file);
+      }
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      saveAs(zipBlob, `${cn}-Claim Pack.zip`);
+      toast({ title: "Claim Pack Downloaded", description: `All files bundled into ${cn}-Claim Pack.zip` });
     } finally {
       setLoading(false);
     }
