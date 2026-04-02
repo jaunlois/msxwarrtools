@@ -32,6 +32,7 @@ import {
   type CCCMatch,
 } from "@/lib/claim-processor/types";
 import { saveAs } from "file-saver";
+import JSZip from "jszip";
 
 interface UploadedFile {
   file: File;
