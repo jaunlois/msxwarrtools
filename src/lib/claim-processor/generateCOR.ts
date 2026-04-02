@@ -240,6 +240,8 @@ export async function generateCOR(data: CORExportData, claimNumber: string): Pro
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const fileName = `${claimNumber}-Cost of Repair.xlsx`;
+  if (returnBlob) return { blob, fileName };
   saveAs(blob, fileName);
   return fileName;
 }
+
