@@ -19,7 +19,7 @@ export interface OWSClaimData {
   lineNumber: number;
 }
 
-export function generateOWSClaim(data: OWSClaimData, claimNumber: string): string {
+export function generateOWSClaim(data: OWSClaimData, claimNumber: string, returnBlob?: boolean): string | { blob: Blob; fileName: string } {
   const line = data.repairLine;
   const partsTotal = line.parts.reduce((s, p) => s + p.qty * p.unitPrice, 0);
   const labourTotal = line.labourAmount;
