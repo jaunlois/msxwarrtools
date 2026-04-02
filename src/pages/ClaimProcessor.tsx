@@ -208,119 +208,20 @@ export default function ClaimProcessor() {
     saveAs(uf.file, newName);
   };
 
-  // Generate handlers
+  // Generate handlers (use shared build* helpers below)
   const handleGenerateCOR = async (lineIndex: number) => {
-    const line = warrantyLines[lineIndex];
-    const comments = getLineComment(line.itemNumber);
-    const labourRate = 764;
-
-    const corData: CORExportData = {
-      dealershipName: dealer.name,
-      branch: dealer.branch,
-      dealerCode: dealer.code,
-      todaysDate: new Date().toISOString().split("T")[0],
-      phone: dealer.phone,
-      email: dealer.email,
-      customerName: vehicle.customerName,
-      vehicleType: vehicle.vehicleModel,
-      vin: vehicle.vin,
-      regNo: vehicle.regNo,
-      repairOrder: roNumber,
-      repairLineNumber: String(line.itemNumber),
-      warrantyStartDate: vehicle.warrantyStartDate,
-      kilometers: vehicle.kilometers,
-      complaint: comments.complaint || line.operationDescription,
-      comment: comments.cause || "",
-      parts: line.parts.map(p => ({
-        code: p.code,
-        description: p.description,
-        qty: p.qty,
-        fob: p.unitPrice,
-        markup: 0,
-        total: p.qty * p.unitPrice,
-      })),
-      labour: [{
-        serial: 1,
-        opCode: line.opCode,
-        hours: line.labourHours,
-        amount: line.labourHours * labourRate,
-      }],
-      claimTotal: line.parts.reduce((s, p) => s + p.qty * p.unitPrice, 0) + (line.labourHours * labourRate),
-      causeDetailed: comments.cause,
-      correction: comments.correction,
-    };
-
-    await generateCOR(corData, claimNumber || "DRAFT");
-    toast({ title: "COR Generated", description: `Line ${line.itemNumber} COR downloaded` });
+    await generateCOR(buildCORData(lineIndex), claimNumber || "DRAFT");
+    toast({ title: "COR Generated", description: `Line ${warrantyLines[lineIndex].itemNumber} COR downloaded` });
   };
 
   const handleGenerateAWA = async (lineIndex: number) => {
-    const line = warrantyLines[lineIndex];
-    const comments = getLineComment(line.itemNumber);
-
-    // Build service history from warranty history
-    const serviceHistory = warrantyHistory?.entries
-      .filter(e => e.trxCode === "8159S" || e.customerComments.toLowerCase().includes("service"))
-      .map(e => ({
-        date: e.repairDate,
-        mileage: e.distance,
-        service: e.customerComments,
-      })) || [];
-
-    const awaData: AWAFormData = {
-      dealershipName: dealer.name,
-      branch: dealer.branch,
-      dealerCode: dealer.code,
-      todaysDate: new Date().toISOString().split("T")[0],
-      phone: dealer.phone,
-      email: dealer.email,
-      customerName: vehicle.customerName,
-      vehicleType: vehicle.vehicleModel,
-      vehicleYear: vehicle.deliveryDate || "",
-      monthsOld: "",
-      vin: vehicle.vin,
-      regNo: vehicle.regNo,
-      roNumber,
-      roDate: new Date().toISOString().split("T")[0],
-      fleetCode: "",
-      fleetName: "",
-      warrantyStartDate: vehicle.warrantyStartDate,
-      currentKilometers: vehicle.kilometers,
-      customerPhone: vehicle.phone,
-      complaint: comments.complaint || line.operationDescription,
-      justification: `Kindly assist with AWA for ${line.operationDescription.toLowerCase()} if possible.`,
-      loyaltyAnswers: [true, false, true, true, true, false],
-      ifYesPreviousAWA: "",
-      serviceHistory,
-    };
-
-    await generateAWA(awaData, claimNumber || "DRAFT");
-    toast({ title: "AWA Generated", description: `Line ${line.itemNumber} AWA downloaded` });
+    await generateAWA(buildAWAData(lineIndex), claimNumber || "DRAFT");
+    toast({ title: "AWA Generated", description: `Line ${warrantyLines[lineIndex].itemNumber} AWA downloaded` });
   };
 
   const handleGenerateOWS = (lineIndex: number) => {
-    const line = warrantyLines[lineIndex];
-    const comments = getLineComment(line.itemNumber);
-
-    generateOWSClaim({
-      roNumber,
-      roDate: new Date().toISOString().split("T")[0],
-      vin: vehicle.vin,
-      regNo: vehicle.regNo,
-      vehicleModel: vehicle.vehicleModel,
-      kilometers: vehicle.kilometers,
-      customerName: vehicle.customerName,
-      warrantyStartDate: vehicle.warrantyStartDate,
-      dealerCode: dealer.code,
-      dealerName: dealer.name,
-      repairLine: line,
-      complaint: comments.complaint || line.operationDescription,
-      cause: comments.cause || "",
-      correction: comments.correction || "",
-      lineNumber: line.itemNumber,
-    }, claimNumber || "DRAFT");
-
-    toast({ title: "OWS Generated", description: `Line ${line.itemNumber} OWS claim downloaded` });
+    generateOWSClaim(buildOWSData(lineIndex), claimNumber || "DRAFT");
+    toast({ title: "OWS Generated", description: `Line ${warrantyLines[lineIndex].itemNumber} OWS claim downloaded` });
   };
 
   const buildCORData = (lineIndex: number): CORExportData => {
