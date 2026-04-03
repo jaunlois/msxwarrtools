@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { FileSpreadsheet, FileText, ChevronDown, ChevronUp, Plus, Trash2, Edit2 } from "lucide-react";
+import { FileSpreadsheet, FileText, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Check } from "lucide-react";
 import type { WarrantyRepairLine, ClaimPartLine, SLTMatch } from "@/lib/claim-processor/types";
 
 interface LineComments {
