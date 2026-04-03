@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,9 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Upload, Download, FileSpreadsheet, AlertTriangle, Trash2,
-  FileText, Check, Loader2, File as FileIcon,
+  Upload, Download, FileSpreadsheet, AlertTriangle, Plus,
+  FileText, Loader2, Package, Settings, Zap, History,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parseQuote } from "@/lib/claim-processor/parseQuote";
@@ -24,6 +25,7 @@ import {
   normalizeBsiNumber,
   type WarrantyRepairLine,
   type ClaimVehicleInfo,
+  type ClaimPartLine,
   type ParsedBackPage,
   type ParsedOasis,
   type ParsedWarrantyHistory,
@@ -31,37 +33,30 @@ import {
   type SLTMatch,
   type CCCMatch,
 } from "@/lib/claim-processor/types";
+import { UploadZone, detectFileType, type UploadedFile, type FileType } from "@/components/claim/UploadZone";
+import { RepairLineCard } from "@/components/claim/RepairLineCard";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
-
-interface UploadedFile {
-  file: File;
-  type: "quote" | "backpage" | "frontpage" | "oasis" | "warranty_history" | "photo" | "other";
-  parsed: boolean;
-}
 
 export default function ClaimProcessor() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("upload");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
-  // Extracted data
+  // Core data
   const [bsiNumber, setBsiNumber] = useState("");
   const [claimNumber, setClaimNumber] = useState("");
   const [roNumber, setRoNumber] = useState("");
+  const [labourRate, setLabourRate] = useState(764);
   const [vehicle, setVehicle] = useState<ClaimVehicleInfo>({
     customerName: "", company: "", vin: "", regNo: "", engineNo: "",
     vehicleModel: "", modelCode: "", warrantyStartDate: "", kilometers: "",
     deliveryDate: "", phone: "", email: "",
   });
-
-  // Dealer info
   const [dealer, setDealer] = useState({
-    name: "MMG Ford Bethlehem",
-    branch: "Bethlehem",
-    code: "90555",
-    phone: "0583039890",
-    email: "",
+    name: "MMG Ford Bethlehem", branch: "Bethlehem", code: "90555",
+    phone: "0583039890", email: "",
   });
 
   const [warrantyLines, setWarrantyLines] = useState<WarrantyRepairLine[]>([]);
@@ -71,74 +66,45 @@ export default function ClaimProcessor() {
   const [repeatWarnings, setRepeatWarnings] = useState<RepeatRepairWarning[]>([]);
   const [sltMatches, setSltMatches] = useState<Map<string, SLTMatch>>(new Map());
   const [cccSuggestions, setCccSuggestions] = useState<CCCMatch[]>([]);
-
-  // Per-line editable fields
   const [lineComments, setLineComments] = useState<Record<number, { complaint: string; cause: string; correction: string }>>({});
-
-  // Parts paste
   const [partsPaste, setPartsPaste] = useState("");
+  const [pasteTargetLine, setPasteTargetLine] = useState(0);
 
-  const detectFileType = (name: string): UploadedFile["type"] => {
-    const lower = name.toLowerCase();
-    if (lower.includes("quote")) return "quote";
-    if (lower.includes("back") || lower.includes("backpage")) return "backpage";
-    if (lower.includes("front") || lower.includes("jobcard") || lower.includes("job_card")) return "frontpage";
-    if (lower.includes("oasis")) return "oasis";
-    if (lower.includes("warranty") || lower.includes("history")) return "warranty_history";
-    if (lower.match(/\.(jpg|jpeg|png|gif|webp)$/)) return "photo";
-    return "other";
-  };
-
-  const handleFileDrop = useCallback(async (files: FileList | File[]) => {
-    const fileArray = Array.from(files);
-    const newUploaded: UploadedFile[] = fileArray.map(f => ({
-      file: f,
-      type: detectFileType(f.name),
-      parsed: false,
+  // File handlers
+  const handleFilesAdded = useCallback(async (files: File[]) => {
+    const newUploaded: UploadedFile[] = files.map(f => ({
+      file: f, type: detectFileType(f.name), parsed: false,
     }));
     setUploadedFiles(prev => [...prev, ...newUploaded]);
-
     setLoading(true);
+
     try {
       for (const uf of newUploaded) {
         try {
           if (uf.type === "quote" && uf.file.type === "application/pdf") {
             const parsed = await parseQuote(uf.file);
-            if (parsed.bsiJobcardNo) {
-              setBsiNumber(parsed.bsiJobcardNo);
-              setClaimNumber(normalizeBsiNumber(parsed.bsiJobcardNo));
-            }
+            if (parsed.bsiJobcardNo) { setBsiNumber(parsed.bsiJobcardNo); setClaimNumber(normalizeBsiNumber(parsed.bsiJobcardNo)); }
             if (parsed.roNumber) setRoNumber(parsed.roNumber);
             if (parsed.vehicle.vin) setVehicle(parsed.vehicle);
             if (parsed.repairLines.length > 0) {
               setWarrantyLines(parsed.repairLines);
-              // Match SLT codes
               const opCodes = parsed.repairLines.map(l => l.opCode).filter(Boolean);
-              const matches = matchMultipleSLTCodes(opCodes);
-              setSltMatches(matches);
-              // Suggest CCC codes
-              const allDescs = parsed.repairLines.map(l => l.operationDescription).join(" ");
-              setCccSuggestions(suggestCCCCodes(allDescs));
+              setSltMatches(matchMultipleSLTCodes(opCodes));
+              setCccSuggestions(suggestCCCCodes(parsed.repairLines.map(l => l.operationDescription).join(" ")));
             }
             if (parsed.dealerName) setDealer(d => ({ ...d, name: parsed.dealerName }));
             uf.parsed = true;
           } else if (uf.type === "frontpage" && uf.file.type === "application/pdf") {
             const parsed = await parseFrontPage(uf.file);
-            if (parsed.bsiNumber && !bsiNumber) {
-              setBsiNumber(parsed.bsiNumber);
-              setClaimNumber(normalizeBsiNumber(parsed.bsiNumber));
-            }
-            if (parsed.roNumber && !roNumber) setRoNumber(parsed.roNumber);
+            if (parsed.bsiNumber) { setBsiNumber(prev => prev || parsed.bsiNumber); setClaimNumber(prev => prev || normalizeBsiNumber(parsed.bsiNumber)); }
+            if (parsed.roNumber) setRoNumber(prev => prev || parsed.roNumber);
             if (parsed.vin) setVehicle(v => ({ ...v, vin: parsed.vin || v.vin }));
             uf.parsed = true;
           } else if (uf.type === "backpage" && uf.file.type === "application/pdf") {
             const parsed = await parseBackPage(uf.file);
             setBackPageData(parsed);
-            // Set line comments from back page
             const comments: Record<number, { complaint: string; cause: string; correction: string }> = {};
-            parsed.lines.forEach(l => {
-              comments[l.lineNumber] = { complaint: l.complaint, cause: l.cause, correction: l.correction };
-            });
+            parsed.lines.forEach(l => { comments[l.lineNumber] = { complaint: l.complaint, cause: l.cause, correction: l.correction }; });
             setLineComments(prev => ({ ...prev, ...comments }));
             uf.parsed = true;
           } else if (uf.type === "oasis" && uf.file.type === "application/pdf") {
@@ -150,9 +116,6 @@ export default function ClaimProcessor() {
           } else if (uf.type === "warranty_history" && uf.file.type === "application/pdf") {
             const parsed = await parseWarrantyHistory(uf.file);
             setWarrantyHistory(parsed);
-            if (warrantyLines.length > 0) {
-              setRepeatWarnings(checkRepeatRepairs(warrantyLines, parsed));
-            }
             uf.parsed = true;
           }
         } catch (err) {
@@ -160,99 +123,89 @@ export default function ClaimProcessor() {
           toast({ title: "Parse Warning", description: `Could not fully parse ${uf.file.name}`, variant: "destructive" });
         }
       }
-      setUploadedFiles(prev => [...prev]); // trigger re-render
+      setUploadedFiles(prev => [...prev]);
+      // Auto-advance to review tab if we got data
+      if (newUploaded.some(f => f.type === "quote")) setActiveTab("review");
     } finally {
       setLoading(false);
     }
-  }, [bsiNumber, roNumber, warrantyLines, toast]);
+  }, [toast]);
 
+  const handleFileTypeChanged = (index: number, type: FileType) => {
+    setUploadedFiles(prev => prev.map((f, i) => i === index ? { ...f, type, parsed: false } : f));
+  };
+
+  const downloadRenamed = (uf: UploadedFile) => {
+    const ext = uf.file.name.split(".").pop();
+    const typeLabels: Record<FileType, string> = {
+      quote: "Quote", backpage: "Back Page", frontpage: "Front Page",
+      oasis: "OASIS Report", warranty_history: "Warranty History", photo: "Photo", other: uf.file.name,
+    };
+    saveAs(uf.file, claimNumber ? `${claimNumber}-${typeLabels[uf.type]}.${ext}` : uf.file.name);
+  };
+
+  // Line management
+  const getLineComment = (lineNum: number) => lineComments[lineNum] || { complaint: "", cause: "", correction: "" };
+  const updateLineComment = (lineNum: number, field: "complaint" | "cause" | "correction", value: string) => {
+    setLineComments(prev => ({ ...prev, [lineNum]: { ...getLineComment(lineNum), [field]: value } }));
+  };
+
+  const addManualLine = () => {
+    const nextNum = warrantyLines.length > 0 ? Math.max(...warrantyLines.map(l => l.itemNumber)) + 1 : 1;
+    setWarrantyLines(prev => [...prev, {
+      itemNumber: nextNum, opCode: "", operationDescription: "", paymentMethod: "WAR",
+      labourHours: 0, labourAmount: 0, parts: [], subTotal: 0, vatAmount: 0, total: 0,
+    }]);
+  };
+
+  const updateWarrantyLine = (index: number, updates: Partial<WarrantyRepairLine>) => {
+    setWarrantyLines(prev => prev.map((l, i) => i === index ? { ...l, ...updates } : l));
+  };
+
+  const removeWarrantyLine = (index: number) => {
+    setWarrantyLines(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Paste parts
   const handleParseParts = () => {
     if (!partsPaste.trim()) return;
-    const lines = partsPaste.trim().split("\n");
-    const parts = lines.map(line => {
+    const parts = partsPaste.trim().split("\n").map(line => {
       const cols = line.split(/[\t,;]+/);
       return {
-        code: cols[0]?.trim() || "",
-        description: cols[1]?.trim() || "",
+        code: cols[0]?.trim() || "", description: cols[1]?.trim() || "",
         qty: parseInt(cols[2]?.trim()) || 1,
         unitPrice: parseFloat(cols[3]?.trim()?.replace(/[R\s]/g, "")) || 0,
       };
     }).filter(p => p.code);
 
     if (parts.length > 0 && warrantyLines.length > 0) {
-      // Add parts to first warranty line (user can move later)
+      const targetIdx = Math.min(pasteTargetLine, warrantyLines.length - 1);
       setWarrantyLines(prev => {
         const updated = [...prev];
-        updated[0] = { ...updated[0], parts: [...updated[0].parts, ...parts] };
+        updated[targetIdx] = { ...updated[targetIdx], parts: [...updated[targetIdx].parts, ...parts] };
         return updated;
       });
       setPartsPaste("");
-      toast({ title: "Parts Added", description: `${parts.length} parts parsed and added to Line 1` });
+      toast({ title: "Parts Added", description: `${parts.length} parts added to Line ${warrantyLines[targetIdx].itemNumber}` });
     }
   };
 
-  const getLineComment = (lineNum: number) => lineComments[lineNum] || { complaint: "", cause: "", correction: "" };
-
-  const updateLineComment = (lineNum: number, field: "complaint" | "cause" | "correction", value: string) => {
-    setLineComments(prev => ({
-      ...prev,
-      [lineNum]: { ...getLineComment(lineNum), [field]: value },
-    }));
-  };
-
-  // File download with claim prefix
-  const downloadRenamed = (uf: UploadedFile) => {
-    const ext = uf.file.name.split(".").pop();
-    const typeLabel = uf.type === "quote" ? "Quote" : uf.type === "backpage" ? "Back Page" : uf.type === "frontpage" ? "Front Page" : uf.type === "oasis" ? "OASIS Report" : uf.type === "warranty_history" ? "Warranty History" : uf.file.name;
-    const newName = claimNumber ? `${claimNumber}-${typeLabel}.${ext}` : uf.file.name;
-    saveAs(uf.file, newName);
-  };
-
-  // Generate handlers (use shared build* helpers below)
-  const handleGenerateCOR = async (lineIndex: number) => {
-    await generateCOR(buildCORData(lineIndex), claimNumber || "DRAFT");
-    toast({ title: "COR Generated", description: `Line ${warrantyLines[lineIndex].itemNumber} COR downloaded` });
-  };
-
-  const handleGenerateAWA = async (lineIndex: number) => {
-    await generateAWA(buildAWAData(lineIndex), claimNumber || "DRAFT");
-    toast({ title: "AWA Generated", description: `Line ${warrantyLines[lineIndex].itemNumber} AWA downloaded` });
-  };
-
-  const handleGenerateOWS = (lineIndex: number) => {
-    generateOWSClaim(buildOWSData(lineIndex), claimNumber || "DRAFT");
-    toast({ title: "OWS Generated", description: `Line ${warrantyLines[lineIndex].itemNumber} OWS claim downloaded` });
-  };
-
+  // Build data helpers
   const buildCORData = (lineIndex: number): CORExportData => {
     const line = warrantyLines[lineIndex];
     const comments = getLineComment(line.itemNumber);
-    const labourRate = 764;
     return {
-      dealershipName: dealer.name,
-      branch: dealer.branch,
-      dealerCode: dealer.code,
-      todaysDate: new Date().toISOString().split("T")[0],
-      phone: dealer.phone,
-      email: dealer.email,
-      customerName: vehicle.customerName,
-      vehicleType: vehicle.vehicleModel,
-      vin: vehicle.vin,
-      regNo: vehicle.regNo,
-      repairOrder: roNumber,
-      repairLineNumber: String(line.itemNumber),
-      warrantyStartDate: vehicle.warrantyStartDate,
-      kilometers: vehicle.kilometers,
-      complaint: comments.complaint || line.operationDescription,
+      dealershipName: dealer.name, branch: dealer.branch, dealerCode: dealer.code,
+      todaysDate: new Date().toISOString().split("T")[0], phone: dealer.phone, email: dealer.email,
+      customerName: vehicle.customerName, vehicleType: vehicle.vehicleModel,
+      vin: vehicle.vin, regNo: vehicle.regNo, repairOrder: roNumber,
+      repairLineNumber: String(line.itemNumber), warrantyStartDate: vehicle.warrantyStartDate,
+      kilometers: vehicle.kilometers, complaint: comments.complaint || line.operationDescription,
       comment: comments.cause || "",
-      parts: line.parts.map(p => ({
-        code: p.code, description: p.description, qty: p.qty,
-        fob: p.unitPrice, markup: 0, total: p.qty * p.unitPrice,
-      })),
+      parts: line.parts.map(p => ({ code: p.code, description: p.description, qty: p.qty, fob: p.unitPrice, markup: 0, total: p.qty * p.unitPrice })),
       labour: [{ serial: 1, opCode: line.opCode, hours: line.labourHours, amount: line.labourHours * labourRate }],
       claimTotal: line.parts.reduce((s, p) => s + p.qty * p.unitPrice, 0) + (line.labourHours * labourRate),
-      causeDetailed: comments.cause,
-      correction: comments.correction,
+      causeDetailed: comments.cause, correction: comments.correction,
     };
   };
 
@@ -269,8 +222,7 @@ export default function ClaimProcessor() {
       vehicleYear: vehicle.deliveryDate || "", monthsOld: "", vin: vehicle.vin, regNo: vehicle.regNo,
       roNumber, roDate: new Date().toISOString().split("T")[0], fleetCode: "", fleetName: "",
       warrantyStartDate: vehicle.warrantyStartDate, currentKilometers: vehicle.kilometers,
-      customerPhone: vehicle.phone,
-      complaint: comments.complaint || line.operationDescription,
+      customerPhone: vehicle.phone, complaint: comments.complaint || line.operationDescription,
       justification: `Kindly assist with AWA for ${line.operationDescription.toLowerCase()} if possible.`,
       loyaltyAnswers: [true, false, true, true, true, false], ifYesPreviousAWA: "", serviceHistory,
     };
@@ -294,26 +246,22 @@ export default function ClaimProcessor() {
     try {
       const cn = claimNumber || "DRAFT";
       const zip = new JSZip();
-
       for (let i = 0; i < warrantyLines.length; i++) {
         const corResult = await generateCOR(buildCORData(i), cn, true);
         if (typeof corResult !== "string") zip.file(corResult.fileName, corResult.blob);
-
         const awaResult = await generateAWA(buildAWAData(i), cn, true);
         if (typeof awaResult !== "string") zip.file(awaResult.fileName, awaResult.blob);
-
         const owsResult = generateOWSClaim(buildOWSData(i), cn, true);
         if (typeof owsResult !== "string") zip.file(owsResult.fileName, owsResult.blob);
       }
-
-      // Add renamed uploaded files
       for (const uf of uploadedFiles) {
         const ext = uf.file.name.split(".").pop();
-        const typeLabel = uf.type === "quote" ? "Quote" : uf.type === "backpage" ? "Back Page" : uf.type === "frontpage" ? "Front Page" : uf.type === "oasis" ? "OASIS Report" : uf.type === "warranty_history" ? "Warranty History" : uf.file.name.replace(`.${ext}`, "");
-        const newName = `${cn}-${typeLabel}.${ext}`;
-        zip.file(newName, uf.file);
+        const typeLabels: Record<FileType, string> = {
+          quote: "Quote", backpage: "Back Page", frontpage: "Front Page",
+          oasis: "OASIS Report", warranty_history: "Warranty History", photo: "Photo", other: uf.file.name.replace(/\.\w+$/, ""),
+        };
+        zip.file(`${cn}-${typeLabels[uf.type]}.${ext}`, uf.file);
       }
-
       const zipBlob = await zip.generateAsync({ type: "blob" });
       saveAs(zipBlob, `${cn}-Claim Pack.zip`);
       toast({ title: "Claim Pack Downloaded", description: `All files bundled into ${cn}-Claim Pack.zip` });
@@ -321,6 +269,22 @@ export default function ClaimProcessor() {
       setLoading(false);
     }
   };
+
+  // Reparse after file type change
+  const handleReparse = async () => {
+    const unparsed = uploadedFiles.filter(f => !f.parsed && f.file.type === "application/pdf");
+    if (unparsed.length > 0) {
+      await handleFilesAdded(unparsed.map(f => f.file));
+    }
+  };
+
+  // Check repeat repairs whenever warranty lines or history change
+  const currentWarnings = warrantyHistory && warrantyLines.length > 0
+    ? checkRepeatRepairs(warrantyLines, warrantyHistory)
+    : repeatWarnings;
+
+  const parsedCount = uploadedFiles.filter(f => f.parsed).length;
+  const hasData = bsiNumber || vehicle.vin || warrantyLines.length > 0;
 
   return (
     <div className="space-y-4 max-w-6xl">
@@ -331,357 +295,364 @@ export default function ClaimProcessor() {
             <FileSpreadsheet className="h-6 w-6 text-primary" />
             Warranty Claim Processor
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Upload BSI documents → auto-extract → generate COR, AWA & OWS files
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Upload BSI documents → review extracted data → generate COR, AWA & OWS
           </p>
         </div>
         {warrantyLines.length > 0 && (
           <Button onClick={handleGenerateAll} disabled={loading} size="lg" className="gap-2">
             <Download className="h-4 w-4" />
-            {loading ? "Generating…" : "Generate All"}
+            {loading ? "Generating…" : `Download All (ZIP)`}
           </Button>
         )}
       </div>
 
-      {/* Upload Zone */}
-      <Card className="ford-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-primary flex items-center gap-2">
-            <Upload className="h-4 w-4" /> Upload BSI Documents
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div
-            className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              handleFileDrop(e.dataTransfer.files);
-            }}
-            onClick={() => {
-              const input = document.createElement("input");
-              input.type = "file";
-              input.multiple = true;
-              input.accept = ".pdf,.jpg,.jpeg,.png";
-              input.onchange = (e) => {
-                const files = (e.target as HTMLInputElement).files;
-                if (files) handleFileDrop(files);
-              };
-              input.click();
-            }}
-          >
-            <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Drop or click to upload: <strong>Quote</strong>, <strong>Back Page</strong>, <strong>Front Page</strong>, <strong>OASIS Report</strong>, <strong>Warranty History</strong>
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">PDF files auto-detected by filename</p>
-          </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="upload" className="gap-1.5">
+            <Upload className="h-3.5 w-3.5" /> Upload
+            {uploadedFiles.length > 0 && <Badge variant="secondary" className="h-4 text-[10px] px-1">{uploadedFiles.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="review" className="gap-1.5" disabled={!hasData}>
+            <FileText className="h-3.5 w-3.5" /> Review & Edit
+            {warrantyLines.length > 0 && <Badge variant="secondary" className="h-4 text-[10px] px-1">{warrantyLines.length} lines</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="generate" className="gap-1.5" disabled={warrantyLines.length === 0}>
+            <Zap className="h-3.5 w-3.5" /> Generate
+          </TabsTrigger>
+        </TabsList>
 
-          {uploadedFiles.length > 0 && (
-            <div className="mt-4 space-y-1">
-              {uploadedFiles.map((uf, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm py-1 px-2 rounded bg-muted/30">
-                  <FileIcon className="h-3 w-3 text-muted-foreground" />
-                  <span className="flex-1 truncate">{uf.file.name}</span>
-                  <Badge variant={uf.parsed ? "default" : "secondary"} className="text-[10px]">
-                    {uf.type.replace("_", " ")}
-                  </Badge>
-                  {uf.parsed && <Check className="h-3 w-3 text-green-500" />}
-                  {claimNumber && (
-                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => downloadRenamed(uf)}>
-                      <Download className="h-3 w-3" />
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive" onClick={() => setUploadedFiles(prev => prev.filter((_, idx) => idx !== i))}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
+        {/* ===== UPLOAD TAB ===== */}
+        <TabsContent value="upload" className="space-y-4 mt-4">
+          <UploadZone
+            files={uploadedFiles}
+            onFilesAdded={handleFilesAdded}
+            onFileRemoved={(i) => setUploadedFiles(prev => prev.filter((_, idx) => idx !== i))}
+            onFileTypeChanged={handleFileTypeChanged}
+            onDownloadRenamed={downloadRenamed}
+            claimNumber={claimNumber}
+            loading={loading}
+          />
+
+          {loading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Parsing documents…
             </div>
           )}
-        </CardContent>
-      </Card>
 
-      {loading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Parsing documents…
-        </div>
-      )}
-
-      {/* Claim Summary */}
-      {(bsiNumber || vehicle.vin) && (
-        <Card className="ford-card border-primary/30 bg-primary/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-primary">Claim Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-              <div><span className="text-muted-foreground text-xs">BSI Number</span><p className="font-mono font-medium">{bsiNumber || "—"}</p></div>
-              <div><span className="text-muted-foreground text-xs">Claim #</span><p className="font-mono font-medium">{claimNumber || "—"}</p></div>
-              <div><span className="text-muted-foreground text-xs">RO Number</span><p className="font-mono font-medium">{roNumber || "—"}</p></div>
-              <div><span className="text-muted-foreground text-xs">VIN</span><p className="font-mono font-medium text-xs">{vehicle.vin || "—"}</p></div>
-              <div><span className="text-muted-foreground text-xs">Customer</span><p className="font-medium">{vehicle.customerName || "—"}</p></div>
-              <div><span className="text-muted-foreground text-xs">Vehicle</span><p className="font-medium text-xs">{vehicle.vehicleModel || "—"}</p></div>
-              <div><span className="text-muted-foreground text-xs">Warranty Start</span><p className="font-mono">{vehicle.warrantyStartDate || "—"}</p></div>
-              <div><span className="text-muted-foreground text-xs">Kilometers</span><p className="font-mono">{vehicle.kilometers || "—"}</p></div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Editable Dealer Info */}
-      <Card className="ford-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-primary">Dealer Information</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <Field label="Dealership Name" value={dealer.name} onChange={v => setDealer(d => ({ ...d, name: v }))} />
-          <Field label="Branch" value={dealer.branch} onChange={v => setDealer(d => ({ ...d, branch: v }))} />
-          <Field label="Dealer Code" value={dealer.code} onChange={v => setDealer(d => ({ ...d, code: v }))} />
-          <Field label="Phone" value={dealer.phone} onChange={v => setDealer(d => ({ ...d, phone: v }))} />
-          <Field label="Email" value={dealer.email} onChange={v => setDealer(d => ({ ...d, email: v }))} />
-        </CardContent>
-      </Card>
-
-      {/* Editable Vehicle/Customer */}
-      <Card className="ford-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-primary">Customer & Vehicle</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <Field label="Customer Name" value={vehicle.customerName} onChange={v => setVehicle(prev => ({ ...prev, customerName: v }))} />
-          <Field label="VIN" value={vehicle.vin} onChange={v => setVehicle(prev => ({ ...prev, vin: v }))} className="font-mono" />
-          <Field label="Reg No." value={vehicle.regNo} onChange={v => setVehicle(prev => ({ ...prev, regNo: v }))} />
-          <Field label="Engine No." value={vehicle.engineNo} onChange={v => setVehicle(prev => ({ ...prev, engineNo: v }))} className="font-mono" />
-          <Field label="Vehicle Model" value={vehicle.vehicleModel} onChange={v => setVehicle(prev => ({ ...prev, vehicleModel: v }))} />
-          <Field label="Warranty Start" value={vehicle.warrantyStartDate} onChange={v => setVehicle(prev => ({ ...prev, warrantyStartDate: v }))} />
-          <Field label="Kilometers" value={vehicle.kilometers} onChange={v => setVehicle(prev => ({ ...prev, kilometers: v }))} />
-          <Field label="Phone" value={vehicle.phone} onChange={v => setVehicle(prev => ({ ...prev, phone: v }))} />
-          <Field label="RO Number" value={roNumber} onChange={setRoNumber} />
-        </CardContent>
-      </Card>
-
-      {/* Repeat Repair Warnings */}
-      {repeatWarnings.length > 0 && (
-        <Card className="ford-card border-destructive/50 bg-destructive/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-destructive flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" /> Repeat Repair Warnings
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {repeatWarnings.map((w, i) => (
-              <div key={i} className="text-xs text-destructive/80 bg-destructive/10 rounded p-2">
-                <strong>Line {w.currentLine.itemNumber}:</strong> {w.reason}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* OASIS Info */}
-      {oasisData && (
-        <Card className="ford-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-primary">OASIS Report</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-            <div><span className="text-muted-foreground">Vehicle:</span> {oasisData.vehicleDescription}</div>
-            <div><span className="text-muted-foreground">Engine:</span> {oasisData.engine}</div>
-            <div><span className="text-muted-foreground">Transmission:</span> {oasisData.transmission}</div>
-            <div><span className="text-muted-foreground">Drive Type:</span> {oasisData.driveType}</div>
-            <div><span className="text-muted-foreground">Build Date:</span> {oasisData.buildDate}</div>
-            <div><span className="text-muted-foreground">Odometer:</span> {oasisData.odometer}</div>
-            {oasisData.espInfo && (
-              <div className="col-span-2"><span className="text-muted-foreground">ESP:</span> {oasisData.espInfo.contractNumber} — {oasisData.espInfo.status} (Exp: {oasisData.espInfo.expirationDate})</div>
-            )}
-            {oasisData.outstandingFSAs.length > 0 && (
-              <div className="col-span-3">
-                <span className="text-muted-foreground">Outstanding FSAs:</span>
-                <div className="mt-1 space-y-1">
-                  {oasisData.outstandingFSAs.map((f, i) => (
-                    <Badge key={i} variant="outline" className="text-[10px] mr-1">{f}</Badge>
-                  ))}
+          {parsedCount > 0 && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm">
+                    <span className="text-primary font-medium">{parsedCount} file(s) parsed</span>
+                    {bsiNumber && <span className="ml-3 text-muted-foreground">Claim: <strong className="font-mono">{claimNumber || bsiNumber}</strong></span>}
+                    {vehicle.vin && <span className="ml-3 text-muted-foreground">VIN: <strong className="font-mono text-xs">{vehicle.vin}</strong></span>}
+                    {warrantyLines.length > 0 && <span className="ml-3 text-muted-foreground"><strong>{warrantyLines.length}</strong> warranty line(s)</span>}
+                  </div>
+                  <Button onClick={() => setActiveTab("review")} size="sm" className="gap-1">
+                    Review Data <FileText className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
-      {/* SLT Matches */}
-      {sltMatches.size > 0 && (
-        <Card className="ford-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-primary">SLT Code Matches</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              {Array.from(sltMatches.entries()).map(([code, match]) => (
-                <div key={code} className="flex items-center gap-2 text-xs bg-muted/30 rounded p-2">
-                  <Badge className="text-[10px] font-mono">{match.opCode}</Badge>
-                  <span className="flex-1">{match.description}</span>
-                  <span className="font-mono text-muted-foreground">{match.hours}h</span>
-                  <span className="text-muted-foreground">{match.section}</span>
+        {/* ===== REVIEW TAB ===== */}
+        <TabsContent value="review" className="space-y-4 mt-4">
+          {/* Claim Summary Bar */}
+          {(bsiNumber || vehicle.vin) && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="pt-4 pb-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div><span className="text-muted-foreground text-[10px]">BSI Number</span><p className="font-mono font-medium">{bsiNumber || "—"}</p></div>
+                  <div><span className="text-muted-foreground text-[10px]">Claim #</span><p className="font-mono font-medium">{claimNumber || "—"}</p></div>
+                  <div><span className="text-muted-foreground text-[10px]">RO Number</span><p className="font-mono font-medium">{roNumber || "—"}</p></div>
+                  <div><span className="text-muted-foreground text-[10px]">VIN</span><p className="font-mono font-medium text-xs">{vehicle.vin || "—"}</p></div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          )}
 
-      {/* CCC Suggestions */}
-      {cccSuggestions.length > 0 && (
-        <Card className="ford-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-primary">Suggested CCC Codes</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {cccSuggestions.map((c, i) => (
-              <Badge key={i} variant="outline" className="text-xs gap-1">
-                {c.code} — {c.description} (Condition: {c.conditionCode})
-              </Badge>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Paste Parts */}
-      <Card className="ford-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-primary">Paste Parts (Bulk)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-xs text-muted-foreground">Paste tab/comma separated: Code, Description, Qty, Unit Price (one part per line)</p>
-          <Textarea
-            value={partsPaste}
-            onChange={e => setPartsPaste(e.target.value)}
-            rows={4}
-            className="bg-background text-xs font-mono"
-            placeholder="MB3Z18124CE	KIT SHOCK ABSORBER	1	1555.50&#10;W721979S440	NUT&WSHR M12 HF PTP	1	134.22"
-          />
-          <Button variant="outline" size="sm" onClick={handleParseParts} disabled={!partsPaste.trim()}>
-            Parse & Add Parts
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Warranty Repair Lines */}
-      {warrantyLines.map((line, idx) => {
-        const comments = getLineComment(line.itemNumber);
-        const partsTotal = line.parts.reduce((s, p) => s + p.qty * p.unitPrice, 0);
-        const labourTotal = line.labourAmount || line.labourHours * 764;
-
-        return (
-          <Card key={idx} className="ford-card">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-sm text-primary">
-                  Line {line.itemNumber}: {line.opCode} — {line.operationDescription}
+          {/* Repeat Warnings */}
+          {currentWarnings.length > 0 && (
+            <Card className="border-destructive/50 bg-destructive/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-destructive flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> Repeat Repair Warnings ({currentWarnings.length})
                 </CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Payment: {line.paymentMethod} | Hours: {line.labourHours} | Parts: {line.parts.length}
-                </p>
-              </div>
-              <div className="flex gap-1">
-                <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => handleGenerateCOR(idx)}>
-                  <FileSpreadsheet className="h-3 w-3" /> COR
-                </Button>
-                <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => handleGenerateAWA(idx)}>
-                  <FileText className="h-3 w-3" /> AWA
-                </Button>
-                <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => handleGenerateOWS(idx)}>
-                  <FileText className="h-3 w-3" /> OWS
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Parts table */}
-              <div className="text-xs">
-                <div className="grid grid-cols-[1fr_2fr_0.5fr_1fr_1fr] gap-2 text-muted-foreground font-medium mb-1">
-                  <span>Part Code</span><span>Description</span><span className="text-right">Qty</span>
-                  <span className="text-right">Unit Price</span><span className="text-right">Total</span>
-                </div>
-                <Separator />
-                {line.parts.map((p, pi) => (
-                  <div key={pi} className="grid grid-cols-[1fr_2fr_0.5fr_1fr_1fr] gap-2 py-1">
-                    <span className="font-mono">{p.code}</span>
-                    <span>{p.description}</span>
-                    <span className="text-right">{p.qty}</span>
-                    <span className="text-right font-mono">R {p.unitPrice.toFixed(2)}</span>
-                    <span className="text-right font-mono">R {(p.qty * p.unitPrice).toFixed(2)}</span>
+              </CardHeader>
+              <CardContent className="space-y-1.5">
+                {currentWarnings.map((w, i) => (
+                  <div key={i} className="text-xs text-destructive/80 bg-destructive/10 rounded p-2">
+                    <strong>Line {w.currentLine.itemNumber}:</strong> {w.reason}
                   </div>
                 ))}
-                <Separator />
-                <div className="flex justify-between mt-1 font-medium">
-                  <span>Parts: R {partsTotal.toFixed(2)}</span>
-                  <span>Labour: R {labourTotal.toFixed(2)}</span>
-                  <span className="text-primary">Total: R {(partsTotal + labourTotal).toFixed(2)}</span>
-                </div>
-              </div>
+              </CardContent>
+            </Card>
+          )}
 
-              {/* Complaint / Cause / Correction */}
-              <div className="space-y-2">
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">Complaint</Label>
-                  <Input value={comments.complaint} onChange={e => updateLineComment(line.itemNumber, "complaint", e.target.value)} className="bg-background h-8 text-xs" />
+          {/* Dealer + Vehicle/Customer in 2-col grid */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-primary flex items-center gap-1.5">
+                  <Settings className="h-3.5 w-3.5" /> Dealer Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-2">
+                <Field label="Dealership" value={dealer.name} onChange={v => setDealer(d => ({ ...d, name: v }))} />
+                <Field label="Branch" value={dealer.branch} onChange={v => setDealer(d => ({ ...d, branch: v }))} />
+                <Field label="Code" value={dealer.code} onChange={v => setDealer(d => ({ ...d, code: v }))} />
+                <Field label="Phone" value={dealer.phone} onChange={v => setDealer(d => ({ ...d, phone: v }))} />
+                <div className="col-span-2">
+                  <Field label="Email" value={dealer.email} onChange={v => setDealer(d => ({ ...d, email: v }))} />
                 </div>
                 <div>
-                  <Label className="text-[10px] text-muted-foreground">Cause</Label>
-                  <Textarea value={comments.cause} onChange={e => updateLineComment(line.itemNumber, "cause", e.target.value)} rows={3} className="bg-background text-xs" />
+                  <Label className="text-[10px] text-muted-foreground">Labour Rate (R/hr)</Label>
+                  <Input type="number" value={labourRate} onChange={e => setLabourRate(parseFloat(e.target.value) || 0)} className="h-7 text-xs font-mono" />
                 </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">Correction</Label>
-                  <Input value={comments.correction} onChange={e => updateLineComment(line.itemNumber, "correction", e.target.value)} className="bg-background h-8 text-xs" />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-primary flex items-center gap-1.5">
+                  <Package className="h-3.5 w-3.5" /> Customer & Vehicle
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-2">
+                <Field label="Customer" value={vehicle.customerName} onChange={v => setVehicle(prev => ({ ...prev, customerName: v }))} />
+                <Field label="VIN" value={vehicle.vin} onChange={v => setVehicle(prev => ({ ...prev, vin: v }))} className="font-mono" />
+                <Field label="Reg No." value={vehicle.regNo} onChange={v => setVehicle(prev => ({ ...prev, regNo: v }))} />
+                <Field label="Engine No." value={vehicle.engineNo} onChange={v => setVehicle(prev => ({ ...prev, engineNo: v }))} className="font-mono" />
+                <Field label="Vehicle Model" value={vehicle.vehicleModel} onChange={v => setVehicle(prev => ({ ...prev, vehicleModel: v }))} />
+                <Field label="Warranty Start" value={vehicle.warrantyStartDate} onChange={v => setVehicle(prev => ({ ...prev, warrantyStartDate: v }))} />
+                <Field label="Kilometers" value={vehicle.kilometers} onChange={v => setVehicle(prev => ({ ...prev, kilometers: v }))} />
+                <Field label="RO Number" value={roNumber} onChange={setRoNumber} />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* OASIS + SLT + CCC inline */}
+          {(oasisData || sltMatches.size > 0 || cccSuggestions.length > 0) && (
+            <div className="grid md:grid-cols-3 gap-4">
+              {oasisData && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-primary">OASIS Report</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1 text-[10px]">
+                    <p><span className="text-muted-foreground">Vehicle:</span> {oasisData.vehicleDescription}</p>
+                    <p><span className="text-muted-foreground">Engine:</span> {oasisData.engine}</p>
+                    <p><span className="text-muted-foreground">Transmission:</span> {oasisData.transmission}</p>
+                    <p><span className="text-muted-foreground">Build Date:</span> {oasisData.buildDate}</p>
+                    {oasisData.espInfo && <p><span className="text-muted-foreground">ESP:</span> {oasisData.espInfo.status}</p>}
+                    {oasisData.outstandingFSAs.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {oasisData.outstandingFSAs.map((f, i) => <Badge key={i} variant="outline" className="text-[9px]">{f}</Badge>)}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              {sltMatches.size > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-primary">SLT Matches</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    {Array.from(sltMatches.entries()).map(([code, match]) => (
+                      <div key={code} className="flex items-center gap-1.5 text-[10px]">
+                        <Badge className="text-[9px] font-mono h-4 px-1">{match.opCode}</Badge>
+                        <span className="flex-1 truncate">{match.description}</span>
+                        <span className="font-mono text-muted-foreground">{match.hours}h</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              {cccSuggestions.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-primary">CCC Suggestions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-1.5">
+                    {cccSuggestions.map((c, i) => (
+                      <Badge key={i} variant="outline" className="text-[10px]">
+                        {c.code} — {c.description} ({c.conditionCode})
+                      </Badge>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Paste Parts */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-primary">Bulk Paste Parts</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-[10px] text-muted-foreground">Tab/comma separated: Code, Description, Qty, Unit Price (one per line)</p>
+              <div className="flex gap-2">
+                <Textarea
+                  value={partsPaste} onChange={e => setPartsPaste(e.target.value)} rows={3}
+                  className="text-[10px] font-mono flex-1 min-h-[60px]"
+                  placeholder="MB3Z18124CE&#9;KIT SHOCK ABSORBER&#9;1&#9;1555.50"
+                />
+                <div className="flex flex-col gap-1.5 min-w-[120px]">
+                  {warrantyLines.length > 0 && (
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Target Line</Label>
+                      <select
+                        value={pasteTargetLine}
+                        onChange={e => setPasteTargetLine(parseInt(e.target.value))}
+                        className="w-full h-7 text-xs rounded border border-input bg-background px-2"
+                      >
+                        {warrantyLines.map((l, i) => (
+                          <option key={i} value={i}>Line {l.itemNumber}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <Button variant="outline" size="sm" onClick={handleParseParts} disabled={!partsPaste.trim() || warrantyLines.length === 0} className="text-xs">
+                    Add Parts
+                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-        );
-      })}
 
-      {/* Warranty History */}
-      {warrantyHistory && warrantyHistory.entries.length > 0 && (
-        <Card className="ford-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-primary">Warranty History ({warrantyHistory.entries.length} entries)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="text-left py-1">Doc #</th>
-                    <th className="text-left py-1">Date</th>
-                    <th className="text-left py-1">Dealer</th>
-                    <th className="text-left py-1">Comments</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {warrantyHistory.entries.map((entry, i) => (
-                    <tr key={i} className="border-b border-muted/30">
-                      <td className="py-1 font-mono">{entry.docNumber}</td>
-                      <td className="py-1">{entry.repairDate}</td>
-                      <td className="py-1">{entry.dealership}</td>
-                      <td className="py-1 max-w-xs truncate">{entry.customerComments || entry.techComments}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* Warranty Repair Lines */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-primary flex items-center gap-1.5">
+              Warranty Repair Lines ({warrantyLines.length})
+            </h2>
+            <Button variant="outline" size="sm" onClick={addManualLine} className="text-xs gap-1">
+              <Plus className="h-3 w-3" /> Add Line
+            </Button>
+          </div>
+
+          {warrantyLines.length === 0 && (
+            <Card className="border-dashed">
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                No warranty lines detected. Upload a BSI Quote or add a line manually.
+              </CardContent>
+            </Card>
+          )}
+
+          {warrantyLines.map((line, idx) => (
+            <RepairLineCard
+              key={`${line.itemNumber}-${idx}`}
+              line={line}
+              lineIndex={idx}
+              comments={getLineComment(line.itemNumber)}
+              sltMatch={sltMatches.get(line.opCode)}
+              labourRate={labourRate}
+              onUpdateComments={(field, value) => updateLineComment(line.itemNumber, field, value)}
+              onUpdateParts={(parts) => updateWarrantyLine(idx, { parts })}
+              onUpdateLine={(updates) => updateWarrantyLine(idx, updates)}
+              onGenerateCOR={() => generateCOR(buildCORData(idx), claimNumber || "DRAFT").then(() => toast({ title: "COR Generated" }))}
+              onGenerateAWA={() => generateAWA(buildAWAData(idx), claimNumber || "DRAFT").then(() => toast({ title: "AWA Generated" }))}
+              onGenerateOWS={() => { generateOWSClaim(buildOWSData(idx), claimNumber || "DRAFT"); toast({ title: "OWS Generated" }); }}
+              onRemoveLine={() => removeWarrantyLine(idx)}
+            />
+          ))}
+
+          {/* Warranty History */}
+          {warrantyHistory && warrantyHistory.entries.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-primary flex items-center gap-1.5">
+                  <History className="h-3.5 w-3.5" /> Warranty History ({warrantyHistory.entries.length} entries)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[10px]">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left py-1 pr-2">Doc #</th>
+                        <th className="text-left py-1 pr-2">Date</th>
+                        <th className="text-left py-1 pr-2">Dealer</th>
+                        <th className="text-left py-1">Comments</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {warrantyHistory.entries.slice(0, 20).map((entry, i) => (
+                        <tr key={i} className="border-b border-muted/30">
+                          <td className="py-1 pr-2 font-mono">{entry.docNumber}</td>
+                          <td className="py-1 pr-2">{entry.repairDate}</td>
+                          <td className="py-1 pr-2">{entry.dealership}</td>
+                          <td className="py-1 max-w-xs truncate">{entry.customerComments || entry.techComments}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {warrantyHistory.entries.length > 20 && (
+                    <p className="text-[10px] text-muted-foreground mt-1">Showing first 20 of {warrantyHistory.entries.length} entries</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {warrantyLines.length > 0 && (
+            <div className="flex justify-end">
+              <Button onClick={() => setActiveTab("generate")} size="sm" className="gap-1">
+                Continue to Generate <Zap className="h-3.5 w-3.5" />
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </TabsContent>
 
-      {/* Bottom generate bar */}
-      {warrantyLines.length > 0 && (
-        <div className="flex justify-end pb-8">
-          <Button onClick={handleGenerateAll} disabled={loading} size="lg" className="gap-2">
-            <Download className="h-4 w-4" />
-            {loading ? "Generating…" : `Generate All (${warrantyLines.length} lines × 3 files)`}
-          </Button>
-        </div>
-      )}
+        {/* ===== GENERATE TAB ===== */}
+        <TabsContent value="generate" className="space-y-4 mt-4">
+          <Card className="border-primary/30">
+            <CardHeader>
+              <CardTitle className="text-sm text-primary">Generate Claim Documents</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                <p>Claim: <strong className="font-mono text-foreground">{claimNumber || "DRAFT"}</strong></p>
+                <p className="mt-1">{warrantyLines.length} warranty line(s) × 3 files (COR + AWA + OWS) = <strong>{warrantyLines.length * 3} documents</strong></p>
+                {uploadedFiles.length > 0 && <p className="mt-1">+ {uploadedFiles.length} renamed upload(s)</p>}
+              </div>
+
+              <Separator />
+
+              {/* Per-line summary */}
+              {warrantyLines.map((line, idx) => {
+                const partsTotal = line.parts.reduce((s, p) => s + p.qty * p.unitPrice, 0);
+                const labTotal = line.labourHours * labourRate;
+                return (
+                  <div key={idx} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium">Line {line.itemNumber}: <span className="font-mono text-primary">{line.opCode}</span></p>
+                      <p className="text-xs text-muted-foreground">{line.operationDescription} — R {(partsTotal + labTotal).toFixed(2)}</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => generateCOR(buildCORData(idx), claimNumber || "DRAFT").then(() => toast({ title: "COR Downloaded" }))}>COR</Button>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => generateAWA(buildAWAData(idx), claimNumber || "DRAFT").then(() => toast({ title: "AWA Downloaded" }))}>AWA</Button>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => { generateOWSClaim(buildOWSData(idx), claimNumber || "DRAFT"); toast({ title: "OWS Downloaded" }); }}>OWS</Button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <Separator />
+
+              <Button onClick={handleGenerateAll} disabled={loading} size="lg" className="w-full gap-2">
+                <Download className="h-5 w-5" />
+                {loading ? "Generating ZIP…" : `Download Complete Claim Pack (ZIP)`}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -690,9 +661,9 @@ function Field({ label, value, onChange, className = "" }: {
   label: string; value: string; onChange: (v: string) => void; className?: string;
 }) {
   return (
-    <div className={className}>
+    <div>
       <Label className="text-[10px] text-muted-foreground">{label}</Label>
-      <Input value={value} onChange={e => onChange(e.target.value)} className="bg-background h-8 text-xs" />
+      <Input value={value} onChange={e => onChange(e.target.value)} className={`h-7 text-xs ${className}`} />
     </div>
   );
 }
