@@ -201,6 +201,3 @@ export function RepairLineCard({
     </Card>
   );
 }
-
-// Need to import Check for the edit mode
-import { Check } from "lucide-react";
