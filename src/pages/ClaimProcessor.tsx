@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload, Download, FileSpreadsheet, AlertTriangle, Plus,
-  FileText, Loader2, Package, Settings, Zap, History,
+  FileText, Loader2, Package, Settings, Zap, History, ShieldCheck, ShieldX,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parseQuote } from "@/lib/claim-processor/parseQuote";
@@ -17,7 +17,7 @@ import { parseFrontPage } from "@/lib/claim-processor/parseFrontPage";
 import { parseBackPage } from "@/lib/claim-processor/parseBackPage";
 import { parseOasis } from "@/lib/claim-processor/parseOasis";
 import { parseWarrantyHistory, checkRepeatRepairs } from "@/lib/claim-processor/parseWarrantyHistory";
-import { matchMultipleSLTCodes, suggestCCCCodes } from "@/lib/claim-processor/matchSLT";
+import { matchMultipleSLTCodes, suggestCCCCodes, suggestSLTFromDescription, checkWarrantyValidity } from "@/lib/claim-processor/matchSLT";
 import { generateCOR, type CORExportData } from "@/lib/claim-processor/generateCOR";
 import { generateAWA, type AWAFormData } from "@/lib/claim-processor/generateAWA";
 import { generateOWSClaim } from "@/lib/claim-processor/generateOWS";
@@ -371,6 +371,34 @@ export default function ClaimProcessor() {
                   <div><span className="text-muted-foreground text-[10px]">RO Number</span><p className="font-mono font-medium">{roNumber || "—"}</p></div>
                   <div><span className="text-muted-foreground text-[10px]">VIN</span><p className="font-mono font-medium text-xs">{vehicle.vin || "—"}</p></div>
                 </div>
+                {/* Warranty Status */}
+                {vehicle.warrantyStartDate && (
+                  (() => {
+                    const warrantyCheck = checkWarrantyValidity(vehicle.warrantyStartDate, vehicle.kilometers);
+                    return (
+                      <div className={`mt-3 flex items-center gap-2 rounded-md p-2 text-xs ${
+                        warrantyCheck.inWarranty
+                          ? "bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400"
+                          : "bg-destructive/10 border border-destructive/30 text-destructive"
+                      }`}>
+                        {warrantyCheck.inWarranty
+                          ? <ShieldCheck className="h-4 w-4 shrink-0" />
+                          : <ShieldX className="h-4 w-4 shrink-0" />
+                        }
+                        <div>
+                          <span className="font-medium">
+                            Warranty Start: {vehicle.warrantyStartDate}
+                          </span>
+                          <span className="mx-2">•</span>
+                          <span>{warrantyCheck.reason}</span>
+                          {vehicle.kilometers && (
+                            <span className="mx-2">• Odometer: {parseInt(vehicle.kilometers).toLocaleString()} km</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
               </CardContent>
             </Card>
           )}
@@ -544,23 +572,39 @@ export default function ClaimProcessor() {
             </Card>
           )}
 
-          {warrantyLines.map((line, idx) => (
-            <RepairLineCard
-              key={`${line.itemNumber}-${idx}`}
-              line={line}
-              lineIndex={idx}
-              comments={getLineComment(line.itemNumber)}
-              sltMatch={sltMatches.get(line.opCode)}
-              labourRate={labourRate}
-              onUpdateComments={(field, value) => updateLineComment(line.itemNumber, field, value)}
-              onUpdateParts={(parts) => updateWarrantyLine(idx, { parts })}
-              onUpdateLine={(updates) => updateWarrantyLine(idx, updates)}
-              onGenerateCOR={() => generateCOR(buildCORData(idx), claimNumber || "DRAFT").then(() => toast({ title: "COR Generated" }))}
-              onGenerateAWA={() => generateAWA(buildAWAData(idx), claimNumber || "DRAFT").then(() => toast({ title: "AWA Generated" }))}
-              onGenerateOWS={() => { generateOWSClaim(buildOWSData(idx), claimNumber || "DRAFT"); toast({ title: "OWS Generated" }); }}
-              onRemoveLine={() => removeWarrantyLine(idx)}
-            />
-          ))}
+          {warrantyLines.map((line, idx) => {
+            const lineText = [
+              line.operationDescription,
+              getLineComment(line.itemNumber).complaint,
+              getLineComment(line.itemNumber).cause,
+              getLineComment(line.itemNumber).correction,
+            ].filter(Boolean).join(" ");
+            const lineCCC = suggestCCCCodes(lineText);
+            const lineSLTSuggestions = !sltMatches.has(line.opCode) ? suggestSLTFromDescription(lineText) : [];
+            return (
+              <RepairLineCard
+                key={`${line.itemNumber}-${idx}`}
+                line={line}
+                lineIndex={idx}
+                comments={getLineComment(line.itemNumber)}
+                sltMatch={sltMatches.get(line.opCode)}
+                sltSuggestions={lineSLTSuggestions}
+                cccMatches={lineCCC}
+                labourRate={labourRate}
+                onUpdateComments={(field, value) => updateLineComment(line.itemNumber, field, value)}
+                onUpdateParts={(parts) => updateWarrantyLine(idx, { parts })}
+                onUpdateLine={(updates) => updateWarrantyLine(idx, updates)}
+                onApplySLT={(slt) => {
+                  updateWarrantyLine(idx, { opCode: slt.opCode, labourHours: slt.hours, operationDescription: slt.description });
+                  setSltMatches(prev => new Map(prev).set(slt.opCode, slt));
+                }}
+                onGenerateCOR={() => generateCOR(buildCORData(idx), claimNumber || "DRAFT").then(() => toast({ title: "COR Generated" }))}
+                onGenerateAWA={() => generateAWA(buildAWAData(idx), claimNumber || "DRAFT").then(() => toast({ title: "AWA Generated" }))}
+                onGenerateOWS={() => { generateOWSClaim(buildOWSData(idx), claimNumber || "DRAFT"); toast({ title: "OWS Generated" }); }}
+                onRemoveLine={() => removeWarrantyLine(idx)}
+              />
+            );
+          })}
 
           {/* Warranty History */}
           {warrantyHistory && warrantyHistory.entries.length > 0 && (
