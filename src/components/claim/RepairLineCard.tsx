@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { FileSpreadsheet, FileText, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Check } from "lucide-react";
-import type { WarrantyRepairLine, ClaimPartLine, SLTMatch } from "@/lib/claim-processor/types";
+import { FileSpreadsheet, FileText, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Check, Search } from "lucide-react";
+import type { WarrantyRepairLine, ClaimPartLine, SLTMatch, CCCMatch } from "@/lib/claim-processor/types";
 
 interface LineComments {
   complaint: string;
@@ -23,10 +23,13 @@ interface RepairLineCardProps {
   lineIndex: number;
   comments: LineComments;
   sltMatch?: SLTMatch;
+  sltSuggestions?: SLTMatch[];
+  cccMatches?: CCCMatch[];
   labourRate: number;
   onUpdateComments: (field: "complaint" | "cause" | "correction", value: string) => void;
   onUpdateParts: (parts: ClaimPartLine[]) => void;
   onUpdateLine: (updates: Partial<WarrantyRepairLine>) => void;
+  onApplySLT: (slt: SLTMatch) => void;
   onGenerateCOR: () => void;
   onGenerateAWA: () => void;
   onGenerateOWS: () => void;
@@ -34,8 +37,8 @@ interface RepairLineCardProps {
 }
 
 export function RepairLineCard({
-  line, lineIndex, comments, sltMatch, labourRate,
-  onUpdateComments, onUpdateParts, onUpdateLine,
+  line, lineIndex, comments, sltMatch, sltSuggestions, cccMatches, labourRate,
+  onUpdateComments, onUpdateParts, onUpdateLine, onApplySLT,
   onGenerateCOR, onGenerateAWA, onGenerateOWS, onRemoveLine,
 }: RepairLineCardProps) {
   const [isOpen, setIsOpen] = useState(true);
@@ -68,7 +71,7 @@ export function RepairLineCard({
             <CollapsibleTrigger className="flex items-center gap-2 hover:text-primary transition-colors">
               {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               <CardTitle className="text-sm">
-                Line {line.itemNumber}: <span className="font-mono text-primary">{line.opCode}</span> — {line.operationDescription}
+                Line {line.itemNumber}: <span className="font-mono text-primary">{line.opCode || "—"}</span> — {line.operationDescription || "No description"}
               </CardTitle>
             </CollapsibleTrigger>
             <div className="flex items-center gap-1.5">
@@ -98,6 +101,54 @@ export function RepairLineCard({
 
         <CollapsibleContent>
           <CardContent className="space-y-4 pt-0">
+            {/* SLT & CCC Matches */}
+            {((sltSuggestions && sltSuggestions.length > 0) || (cccMatches && cccMatches.length > 0)) && (
+              <div className="grid md:grid-cols-2 gap-3">
+                {/* SLT Suggestions */}
+                {sltSuggestions && sltSuggestions.length > 0 && (
+                  <div className="rounded-md border border-border p-2 bg-muted/20">
+                    <p className="text-[10px] font-medium text-primary mb-1.5 flex items-center gap-1">
+                      <Search className="h-3 w-3" /> Suggested SLT Codes
+                    </p>
+                    <div className="space-y-1">
+                      {sltSuggestions.map((slt, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-[10px]">
+                          <Badge className="text-[9px] font-mono h-4 px-1 cursor-pointer hover:bg-primary"
+                            onClick={() => onApplySLT(slt)}>
+                            {slt.opCode}
+                          </Badge>
+                          <span className="flex-1 truncate">{slt.description}</span>
+                          <span className="font-mono text-muted-foreground">{slt.hours}h</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* CCC Matches */}
+                {cccMatches && cccMatches.length > 0 && (
+                  <div className="rounded-md border border-border p-2 bg-muted/20">
+                    <p className="text-[10px] font-medium text-primary mb-1.5">
+                      Matched CCC Codes
+                    </p>
+                    <div className="space-y-1">
+                      {cccMatches.map((c, i) => (
+                        <div key={i} className="text-[10px] flex items-start gap-1.5">
+                          <Badge variant="outline" className="text-[9px] font-mono h-4 px-1 shrink-0">
+                            {c.code}
+                          </Badge>
+                          <span className="flex-1">{c.description}</span>
+                          <Badge variant="secondary" className="text-[9px] h-4 px-1 shrink-0">
+                            {c.conditionCode} — {c.conditionDescription}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Editable Line Details */}
             <div className="grid grid-cols-3 gap-2">
               <div>
