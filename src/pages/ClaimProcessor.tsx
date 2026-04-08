@@ -17,7 +17,7 @@ import { parseFrontPage } from "@/lib/claim-processor/parseFrontPage";
 import { parseBackPage } from "@/lib/claim-processor/parseBackPage";
 import { parseOasis } from "@/lib/claim-processor/parseOasis";
 import { parseWarrantyHistory, checkRepeatRepairs } from "@/lib/claim-processor/parseWarrantyHistory";
-import { matchMultipleSLTCodes, suggestCCCCodes } from "@/lib/claim-processor/matchSLT";
+import { matchMultipleSLTCodes, suggestCCCCodes, suggestSLTFromDescription, checkWarrantyValidity } from "@/lib/claim-processor/matchSLT";
 import { generateCOR, type CORExportData } from "@/lib/claim-processor/generateCOR";
 import { generateAWA, type AWAFormData } from "@/lib/claim-processor/generateAWA";
 import { generateOWSClaim } from "@/lib/claim-processor/generateOWS";
