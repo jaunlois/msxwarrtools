@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload, Download, FileSpreadsheet, AlertTriangle, Plus,
-  FileText, Loader2, Package, Settings, Zap, History,
+  FileText, Loader2, Package, Settings, Zap, History, ShieldCheck, ShieldX,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parseQuote } from "@/lib/claim-processor/parseQuote";
@@ -544,23 +544,39 @@ export default function ClaimProcessor() {
             </Card>
           )}
 
-          {warrantyLines.map((line, idx) => (
-            <RepairLineCard
-              key={`${line.itemNumber}-${idx}`}
-              line={line}
-              lineIndex={idx}
-              comments={getLineComment(line.itemNumber)}
-              sltMatch={sltMatches.get(line.opCode)}
-              labourRate={labourRate}
-              onUpdateComments={(field, value) => updateLineComment(line.itemNumber, field, value)}
-              onUpdateParts={(parts) => updateWarrantyLine(idx, { parts })}
-              onUpdateLine={(updates) => updateWarrantyLine(idx, updates)}
-              onGenerateCOR={() => generateCOR(buildCORData(idx), claimNumber || "DRAFT").then(() => toast({ title: "COR Generated" }))}
-              onGenerateAWA={() => generateAWA(buildAWAData(idx), claimNumber || "DRAFT").then(() => toast({ title: "AWA Generated" }))}
-              onGenerateOWS={() => { generateOWSClaim(buildOWSData(idx), claimNumber || "DRAFT"); toast({ title: "OWS Generated" }); }}
-              onRemoveLine={() => removeWarrantyLine(idx)}
-            />
-          ))}
+          {warrantyLines.map((line, idx) => {
+            const lineText = [
+              line.operationDescription,
+              getLineComment(line.itemNumber).complaint,
+              getLineComment(line.itemNumber).cause,
+              getLineComment(line.itemNumber).correction,
+            ].filter(Boolean).join(" ");
+            const lineCCC = suggestCCCCodes(lineText);
+            const lineSLTSuggestions = !sltMatches.has(line.opCode) ? suggestSLTFromDescription(lineText) : [];
+            return (
+              <RepairLineCard
+                key={`${line.itemNumber}-${idx}`}
+                line={line}
+                lineIndex={idx}
+                comments={getLineComment(line.itemNumber)}
+                sltMatch={sltMatches.get(line.opCode)}
+                sltSuggestions={lineSLTSuggestions}
+                cccMatches={lineCCC}
+                labourRate={labourRate}
+                onUpdateComments={(field, value) => updateLineComment(line.itemNumber, field, value)}
+                onUpdateParts={(parts) => updateWarrantyLine(idx, { parts })}
+                onUpdateLine={(updates) => updateWarrantyLine(idx, updates)}
+                onApplySLT={(slt) => {
+                  updateWarrantyLine(idx, { opCode: slt.opCode, labourHours: slt.hours, operationDescription: slt.description });
+                  setSltMatches(prev => new Map(prev).set(slt.opCode, slt));
+                }}
+                onGenerateCOR={() => generateCOR(buildCORData(idx), claimNumber || "DRAFT").then(() => toast({ title: "COR Generated" }))}
+                onGenerateAWA={() => generateAWA(buildAWAData(idx), claimNumber || "DRAFT").then(() => toast({ title: "AWA Generated" }))}
+                onGenerateOWS={() => { generateOWSClaim(buildOWSData(idx), claimNumber || "DRAFT"); toast({ title: "OWS Generated" }); }}
+                onRemoveLine={() => removeWarrantyLine(idx)}
+              />
+            );
+          })}
 
           {/* Warranty History */}
           {warrantyHistory && warrantyHistory.entries.length > 0 && (
