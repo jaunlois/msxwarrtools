@@ -371,6 +371,34 @@ export default function ClaimProcessor() {
                   <div><span className="text-muted-foreground text-[10px]">RO Number</span><p className="font-mono font-medium">{roNumber || "—"}</p></div>
                   <div><span className="text-muted-foreground text-[10px]">VIN</span><p className="font-mono font-medium text-xs">{vehicle.vin || "—"}</p></div>
                 </div>
+                {/* Warranty Status */}
+                {vehicle.warrantyStartDate && (
+                  (() => {
+                    const warrantyCheck = checkWarrantyValidity(vehicle.warrantyStartDate, vehicle.kilometers);
+                    return (
+                      <div className={`mt-3 flex items-center gap-2 rounded-md p-2 text-xs ${
+                        warrantyCheck.inWarranty
+                          ? "bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400"
+                          : "bg-destructive/10 border border-destructive/30 text-destructive"
+                      }`}>
+                        {warrantyCheck.inWarranty
+                          ? <ShieldCheck className="h-4 w-4 shrink-0" />
+                          : <ShieldX className="h-4 w-4 shrink-0" />
+                        }
+                        <div>
+                          <span className="font-medium">
+                            Warranty Start: {vehicle.warrantyStartDate}
+                          </span>
+                          <span className="mx-2">•</span>
+                          <span>{warrantyCheck.reason}</span>
+                          {vehicle.kilometers && (
+                            <span className="mx-2">• Odometer: {parseInt(vehicle.kilometers).toLocaleString()} km</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
               </CardContent>
             </Card>
           )}
