@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload, Download, FileSpreadsheet, AlertTriangle, Plus,
-  FileText, Loader2, Package, Settings, Zap, History, ShieldCheck, ShieldX,
+  FileText, Loader2, Package, Settings, Zap, History, Eye,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parseQuote } from "@/lib/claim-processor/parseQuote";
@@ -17,7 +17,7 @@ import { parseFrontPage } from "@/lib/claim-processor/parseFrontPage";
 import { parseBackPage } from "@/lib/claim-processor/parseBackPage";
 import { parseOasis } from "@/lib/claim-processor/parseOasis";
 import { parseWarrantyHistory, checkRepeatRepairs } from "@/lib/claim-processor/parseWarrantyHistory";
-import { matchMultipleSLTCodes, suggestCCCCodes, suggestSLTFromDescription, checkWarrantyValidity } from "@/lib/claim-processor/matchSLT";
+import { matchMultipleSLTCodes, suggestCCCCodes, suggestSLTFromDescription } from "@/lib/claim-processor/matchSLT";
 import { generateCOR, type CORExportData } from "@/lib/claim-processor/generateCOR";
 import { generateAWA, type AWAFormData } from "@/lib/claim-processor/generateAWA";
 import { generateOWSClaim } from "@/lib/claim-processor/generateOWS";
@@ -35,6 +35,8 @@ import {
 } from "@/lib/claim-processor/types";
 import { UploadZone, detectFileType, type UploadedFile, type FileType } from "@/components/claim/UploadZone";
 import { RepairLineCard } from "@/components/claim/RepairLineCard";
+import { QuickLinks } from "@/components/claim/QuickLinks";
+import { ClaimSummaryBar } from "@/components/claim/ClaimSummaryBar";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 
@@ -90,7 +92,8 @@ export default function ClaimProcessor() {
               setWarrantyLines(parsed.repairLines);
               const opCodes = parsed.repairLines.map(l => l.opCode).filter(Boolean);
               setSltMatches(matchMultipleSLTCodes(opCodes));
-              setCccSuggestions(suggestCCCCodes(parsed.repairLines.map(l => l.operationDescription).join(" ")));
+              const allDesc = parsed.repairLines.map(l => l.operationDescription).join(" ");
+              setCccSuggestions(suggestCCCCodes(allDesc));
             }
             if (parsed.dealerName) setDealer(d => ({ ...d, name: parsed.dealerName }));
             uf.parsed = true;
@@ -124,7 +127,6 @@ export default function ClaimProcessor() {
         }
       }
       setUploadedFiles(prev => [...prev]);
-      // Auto-advance to review tab if we got data
       if (newUploaded.some(f => f.type === "quote")) setActiveTab("review");
     } finally {
       setLoading(false);
@@ -270,15 +272,7 @@ export default function ClaimProcessor() {
     }
   };
 
-  // Reparse after file type change
-  const handleReparse = async () => {
-    const unparsed = uploadedFiles.filter(f => !f.parsed && f.file.type === "application/pdf");
-    if (unparsed.length > 0) {
-      await handleFilesAdded(unparsed.map(f => f.file));
-    }
-  };
-
-  // Check repeat repairs whenever warranty lines or history change
+  // Check repeat repairs
   const currentWarnings = warrantyHistory && warrantyLines.length > 0
     ? checkRepeatRepairs(warrantyLines, warrantyHistory)
     : repeatWarnings;
@@ -288,24 +282,47 @@ export default function ClaimProcessor() {
 
   return (
     <div className="space-y-4 max-w-6xl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileSpreadsheet className="h-6 w-6 text-primary" />
-            Warranty Claim Processor
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Upload BSI documents → review extracted data → generate COR, AWA & OWS
-          </p>
+      {/* Header with Quick Links */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <FileSpreadsheet className="h-6 w-6 text-primary" />
+              Warranty Claim Processor
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Upload BSI docs → Review & match codes → Generate claim pack
+            </p>
+          </div>
+          {warrantyLines.length > 0 && (
+            <Button onClick={handleGenerateAll} disabled={loading} size="lg" className="gap-2">
+              <Download className="h-4 w-4" />
+              {loading ? "Generating…" : `Download All (ZIP)`}
+            </Button>
+          )}
         </div>
-        {warrantyLines.length > 0 && (
-          <Button onClick={handleGenerateAll} disabled={loading} size="lg" className="gap-2">
-            <Download className="h-4 w-4" />
-            {loading ? "Generating…" : `Download All (ZIP)`}
-          </Button>
-        )}
+
+        {/* Quick Links Bar */}
+        <Card className="border-muted bg-muted/20">
+          <CardContent className="py-2.5 px-4">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider shrink-0">Quick Launch</span>
+              <QuickLinks />
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Claim Summary — always visible once we have data */}
+      {hasData && (
+        <ClaimSummaryBar
+          bsiNumber={bsiNumber}
+          claimNumber={claimNumber}
+          roNumber={roNumber}
+          vehicle={vehicle}
+          lineCount={warrantyLines.length}
+        />
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
@@ -314,7 +331,7 @@ export default function ClaimProcessor() {
             {uploadedFiles.length > 0 && <Badge variant="secondary" className="h-4 text-[10px] px-1">{uploadedFiles.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="review" className="gap-1.5" disabled={!hasData}>
-            <FileText className="h-3.5 w-3.5" /> Review & Edit
+            <Eye className="h-3.5 w-3.5" /> Review & Edit
             {warrantyLines.length > 0 && <Badge variant="secondary" className="h-4 text-[10px] px-1">{warrantyLines.length} lines</Badge>}
           </TabsTrigger>
           <TabsTrigger value="generate" className="gap-1.5" disabled={warrantyLines.length === 0}>
@@ -345,10 +362,7 @@ export default function ClaimProcessor() {
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div className="text-sm">
-                    <span className="text-primary font-medium">{parsedCount} file(s) parsed</span>
-                    {bsiNumber && <span className="ml-3 text-muted-foreground">Claim: <strong className="font-mono">{claimNumber || bsiNumber}</strong></span>}
-                    {vehicle.vin && <span className="ml-3 text-muted-foreground">VIN: <strong className="font-mono text-xs">{vehicle.vin}</strong></span>}
-                    {warrantyLines.length > 0 && <span className="ml-3 text-muted-foreground"><strong>{warrantyLines.length}</strong> warranty line(s)</span>}
+                    <span className="text-primary font-medium">{parsedCount} file(s) parsed successfully</span>
                   </div>
                   <Button onClick={() => setActiveTab("review")} size="sm" className="gap-1">
                     Review Data <FileText className="h-3.5 w-3.5" />
@@ -361,48 +375,6 @@ export default function ClaimProcessor() {
 
         {/* ===== REVIEW TAB ===== */}
         <TabsContent value="review" className="space-y-4 mt-4">
-          {/* Claim Summary Bar */}
-          {(bsiNumber || vehicle.vin) && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="pt-4 pb-3">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <div><span className="text-muted-foreground text-[10px]">BSI Number</span><p className="font-mono font-medium">{bsiNumber || "—"}</p></div>
-                  <div><span className="text-muted-foreground text-[10px]">Claim #</span><p className="font-mono font-medium">{claimNumber || "—"}</p></div>
-                  <div><span className="text-muted-foreground text-[10px]">RO Number</span><p className="font-mono font-medium">{roNumber || "—"}</p></div>
-                  <div><span className="text-muted-foreground text-[10px]">VIN</span><p className="font-mono font-medium text-xs">{vehicle.vin || "—"}</p></div>
-                </div>
-                {/* Warranty Status */}
-                {vehicle.warrantyStartDate && (
-                  (() => {
-                    const warrantyCheck = checkWarrantyValidity(vehicle.warrantyStartDate, vehicle.kilometers);
-                    return (
-                      <div className={`mt-3 flex items-center gap-2 rounded-md p-2 text-xs ${
-                        warrantyCheck.inWarranty
-                          ? "bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400"
-                          : "bg-destructive/10 border border-destructive/30 text-destructive"
-                      }`}>
-                        {warrantyCheck.inWarranty
-                          ? <ShieldCheck className="h-4 w-4 shrink-0" />
-                          : <ShieldX className="h-4 w-4 shrink-0" />
-                        }
-                        <div>
-                          <span className="font-medium">
-                            Warranty Start: {vehicle.warrantyStartDate}
-                          </span>
-                          <span className="mx-2">•</span>
-                          <span>{warrantyCheck.reason}</span>
-                          {vehicle.kilometers && (
-                            <span className="mx-2">• Odometer: {parseInt(vehicle.kilometers).toLocaleString()} km</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()
-                )}
-              </CardContent>
-            </Card>
-          )}
-
           {/* Repeat Warnings */}
           {currentWarnings.length > 0 && (
             <Card className="border-destructive/50 bg-destructive/5">
@@ -421,7 +393,7 @@ export default function ClaimProcessor() {
             </Card>
           )}
 
-          {/* Dealer + Vehicle/Customer in 2-col grid */}
+          {/* Dealer + Vehicle in 2-col grid */}
           <div className="grid md:grid-cols-2 gap-4">
             <Card>
               <CardHeader className="pb-2">
@@ -469,7 +441,7 @@ export default function ClaimProcessor() {
               {oasisData && (
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-xs text-primary">OASIS Report</CardTitle>
+                    <CardTitle className="text-xs text-primary">OASIS Data</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-1 text-[10px]">
                     <p><span className="text-muted-foreground">Vehicle:</span> {oasisData.vehicleDescription}</p>
@@ -668,7 +640,6 @@ export default function ClaimProcessor() {
 
               <Separator />
 
-              {/* Per-line summary */}
               {warrantyLines.map((line, idx) => {
                 const partsTotal = line.parts.reduce((s, p) => s + p.qty * p.unitPrice, 0);
                 const labTotal = line.labourHours * labourRate;
