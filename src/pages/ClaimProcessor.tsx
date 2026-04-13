@@ -70,8 +70,6 @@ export default function ClaimProcessor() {
   const [sltMatches, setSltMatches] = useState<Map<string, SLTMatch>>(new Map());
   const [cccSuggestions, setCccSuggestions] = useState<CCCMatch[]>([]);
   const [lineComments, setLineComments] = useState<Record<number, { complaint: string; cause: string; correction: string }>>({});
-  const [partsPaste, setPartsPaste] = useState("");
-  const [pasteTargetLine, setPasteTargetLine] = useState(0);
 
   // File handlers
   const handleFilesAdded = useCallback(async (files: File[]) => {
