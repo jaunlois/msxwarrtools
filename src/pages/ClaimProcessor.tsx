@@ -167,28 +167,32 @@ export default function ClaimProcessor() {
     setWarrantyLines(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Paste parts
-  const handleParseParts = () => {
-    if (!partsPaste.trim()) return;
-    const parts = partsPaste.trim().split("\n").map(line => {
-      const cols = line.split(/[\t,;]+/);
-      return {
-        code: cols[0]?.trim() || "", description: cols[1]?.trim() || "",
-        qty: parseInt(cols[2]?.trim()) || 1,
-        unitPrice: parseFloat(cols[3]?.trim()?.replace(/[R\s]/g, "")) || 0,
-      };
-    }).filter(p => p.code);
+  // Paste extractor handlers
+  const handlePasteRepairLines = (lines: WarrantyRepairLine[]) => {
+    setWarrantyLines(prev => [...prev, ...lines]);
+    const opCodes = lines.map(l => l.opCode).filter(Boolean);
+    setSltMatches(prev => {
+      const merged = new Map(prev);
+      matchMultipleSLTCodes(opCodes).forEach((v, k) => merged.set(k, v));
+      return merged;
+    });
+    const allDesc = lines.map(l => l.operationDescription).join(" ");
+    setCccSuggestions(prev => [...prev, ...suggestCCCCodes(allDesc)]);
+    toast({ title: "Lines Added", description: `${lines.length} repair line(s) added from pasted text` });
+  };
 
-    if (parts.length > 0 && warrantyLines.length > 0) {
-      const targetIdx = Math.min(pasteTargetLine, warrantyLines.length - 1);
-      setWarrantyLines(prev => {
-        const updated = [...prev];
-        updated[targetIdx] = { ...updated[targetIdx], parts: [...updated[targetIdx].parts, ...parts] };
-        return updated;
-      });
-      setPartsPaste("");
-      toast({ title: "Parts Added", description: `${parts.length} parts added to Line ${warrantyLines[targetIdx].itemNumber}` });
-    }
+  const handlePasteParts = (parts: ClaimPartLine[], targetIdx: number) => {
+    const idx = Math.min(targetIdx, warrantyLines.length - 1);
+    setWarrantyLines(prev => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], parts: [...updated[idx].parts, ...parts] };
+      return updated;
+    });
+    toast({ title: "Parts Added", description: `${parts.length} part(s) added to Line ${warrantyLines[idx].itemNumber}` });
+  };
+
+  const handlePasteVehicle = (v: Partial<ClaimVehicleInfo>) => {
+    setVehicle(prev => ({ ...prev, ...Object.fromEntries(Object.entries(v).filter(([_, val]) => val)) }));
   };
 
   // Build data helpers
