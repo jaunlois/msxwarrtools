@@ -493,41 +493,15 @@ export default function ClaimProcessor() {
             </div>
           )}
 
-          {/* Paste Parts */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-primary">Bulk Paste Parts</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-[10px] text-muted-foreground">Tab/comma separated: Code, Description, Qty, Unit Price (one per line)</p>
-              <div className="flex gap-2">
-                <Textarea
-                  value={partsPaste} onChange={e => setPartsPaste(e.target.value)} rows={3}
-                  className="text-[10px] font-mono flex-1 min-h-[60px]"
-                  placeholder="MB3Z18124CE&#9;KIT SHOCK ABSORBER&#9;1&#9;1555.50"
-                />
-                <div className="flex flex-col gap-1.5 min-w-[120px]">
-                  {warrantyLines.length > 0 && (
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Target Line</Label>
-                      <select
-                        value={pasteTargetLine}
-                        onChange={e => setPasteTargetLine(parseInt(e.target.value))}
-                        className="w-full h-7 text-xs rounded border border-input bg-background px-2"
-                      >
-                        {warrantyLines.map((l, i) => (
-                          <option key={i} value={i}>Line {l.itemNumber}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  <Button variant="outline" size="sm" onClick={handleParseParts} disabled={!partsPaste.trim() || warrantyLines.length === 0} className="text-xs">
-                    Add Parts
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Paste Extractor */}
+          <PasteExtractor
+            onRepairLinesExtracted={handlePasteRepairLines}
+            onPartsExtracted={handlePasteParts}
+            onVehicleExtracted={handlePasteVehicle}
+            onBsiExtracted={(bsi) => { setBsiNumber(bsi); setClaimNumber(normalizeBsiNumber(bsi)); }}
+            onRoExtracted={setRoNumber}
+            existingLines={warrantyLines}
+          />
 
           {/* Warranty Repair Lines */}
           <div className="flex items-center justify-between">
