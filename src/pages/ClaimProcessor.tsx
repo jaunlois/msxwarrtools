@@ -37,6 +37,7 @@ import { UploadZone, detectFileType, type UploadedFile, type FileType } from "@/
 import { RepairLineCard } from "@/components/claim/RepairLineCard";
 import { QuickLinks } from "@/components/claim/QuickLinks";
 import { ClaimSummaryBar } from "@/components/claim/ClaimSummaryBar";
+import { PasteExtractor } from "@/components/claim/PasteExtractor";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 
@@ -69,8 +70,6 @@ export default function ClaimProcessor() {
   const [sltMatches, setSltMatches] = useState<Map<string, SLTMatch>>(new Map());
   const [cccSuggestions, setCccSuggestions] = useState<CCCMatch[]>([]);
   const [lineComments, setLineComments] = useState<Record<number, { complaint: string; cause: string; correction: string }>>({});
-  const [partsPaste, setPartsPaste] = useState("");
-  const [pasteTargetLine, setPasteTargetLine] = useState(0);
 
   // File handlers
   const handleFilesAdded = useCallback(async (files: File[]) => {
@@ -168,28 +167,32 @@ export default function ClaimProcessor() {
     setWarrantyLines(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Paste parts
-  const handleParseParts = () => {
-    if (!partsPaste.trim()) return;
-    const parts = partsPaste.trim().split("\n").map(line => {
-      const cols = line.split(/[\t,;]+/);
-      return {
-        code: cols[0]?.trim() || "", description: cols[1]?.trim() || "",
-        qty: parseInt(cols[2]?.trim()) || 1,
-        unitPrice: parseFloat(cols[3]?.trim()?.replace(/[R\s]/g, "")) || 0,
-      };
-    }).filter(p => p.code);
+  // Paste extractor handlers
+  const handlePasteRepairLines = (lines: WarrantyRepairLine[]) => {
+    setWarrantyLines(prev => [...prev, ...lines]);
+    const opCodes = lines.map(l => l.opCode).filter(Boolean);
+    setSltMatches(prev => {
+      const merged = new Map(prev);
+      matchMultipleSLTCodes(opCodes).forEach((v, k) => merged.set(k, v));
+      return merged;
+    });
+    const allDesc = lines.map(l => l.operationDescription).join(" ");
+    setCccSuggestions(prev => [...prev, ...suggestCCCCodes(allDesc)]);
+    toast({ title: "Lines Added", description: `${lines.length} repair line(s) added from pasted text` });
+  };
 
-    if (parts.length > 0 && warrantyLines.length > 0) {
-      const targetIdx = Math.min(pasteTargetLine, warrantyLines.length - 1);
-      setWarrantyLines(prev => {
-        const updated = [...prev];
-        updated[targetIdx] = { ...updated[targetIdx], parts: [...updated[targetIdx].parts, ...parts] };
-        return updated;
-      });
-      setPartsPaste("");
-      toast({ title: "Parts Added", description: `${parts.length} parts added to Line ${warrantyLines[targetIdx].itemNumber}` });
-    }
+  const handlePasteParts = (parts: ClaimPartLine[], targetIdx: number) => {
+    const idx = Math.min(targetIdx, warrantyLines.length - 1);
+    setWarrantyLines(prev => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], parts: [...updated[idx].parts, ...parts] };
+      return updated;
+    });
+    toast({ title: "Parts Added", description: `${parts.length} part(s) added to Line ${warrantyLines[idx].itemNumber}` });
+  };
+
+  const handlePasteVehicle = (v: Partial<ClaimVehicleInfo>) => {
+    setVehicle(prev => ({ ...prev, ...Object.fromEntries(Object.entries(v).filter(([_, val]) => val)) }));
   };
 
   // Build data helpers
@@ -490,41 +493,15 @@ export default function ClaimProcessor() {
             </div>
           )}
 
-          {/* Paste Parts */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-primary">Bulk Paste Parts</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-[10px] text-muted-foreground">Tab/comma separated: Code, Description, Qty, Unit Price (one per line)</p>
-              <div className="flex gap-2">
-                <Textarea
-                  value={partsPaste} onChange={e => setPartsPaste(e.target.value)} rows={3}
-                  className="text-[10px] font-mono flex-1 min-h-[60px]"
-                  placeholder="MB3Z18124CE&#9;KIT SHOCK ABSORBER&#9;1&#9;1555.50"
-                />
-                <div className="flex flex-col gap-1.5 min-w-[120px]">
-                  {warrantyLines.length > 0 && (
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Target Line</Label>
-                      <select
-                        value={pasteTargetLine}
-                        onChange={e => setPasteTargetLine(parseInt(e.target.value))}
-                        className="w-full h-7 text-xs rounded border border-input bg-background px-2"
-                      >
-                        {warrantyLines.map((l, i) => (
-                          <option key={i} value={i}>Line {l.itemNumber}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  <Button variant="outline" size="sm" onClick={handleParseParts} disabled={!partsPaste.trim() || warrantyLines.length === 0} className="text-xs">
-                    Add Parts
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Paste Extractor */}
+          <PasteExtractor
+            onRepairLinesExtracted={handlePasteRepairLines}
+            onPartsExtracted={handlePasteParts}
+            onVehicleExtracted={handlePasteVehicle}
+            onBsiExtracted={(bsi) => { setBsiNumber(bsi); setClaimNumber(normalizeBsiNumber(bsi)); }}
+            onRoExtracted={setRoNumber}
+            existingLines={warrantyLines}
+          />
 
           {/* Warranty Repair Lines */}
           <div className="flex items-center justify-between">
