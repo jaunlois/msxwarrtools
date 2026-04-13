@@ -37,6 +37,7 @@ import { UploadZone, detectFileType, type UploadedFile, type FileType } from "@/
 import { RepairLineCard } from "@/components/claim/RepairLineCard";
 import { QuickLinks } from "@/components/claim/QuickLinks";
 import { ClaimSummaryBar } from "@/components/claim/ClaimSummaryBar";
+import { PasteExtractor } from "@/components/claim/PasteExtractor";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 
