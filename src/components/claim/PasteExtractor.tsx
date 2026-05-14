@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ClipboardPaste, Zap, Check, Plus, Trash2 } from "lucide-react";
+import { ClipboardPaste, Zap, Check, Plus, Trash2, Sparkles } from "lucide-react";
 import type { WarrantyRepairLine, ClaimPartLine, ClaimVehicleInfo } from "@/lib/claim-processor/types";
 
 interface ParsedPasteResult {
@@ -52,33 +52,71 @@ function parseQuoteText(text: string): ParsedPasteResult {
       if (vinMatch) result.vehicle.vin = vinMatch[1];
     }
 
+    // Chassis No (BSI Jobcard) — same as VIN
+    if (!result.vehicle.vin) {
+      const chassisMatch = stripped.match(/Chassis\s*(?:No\.?|Number)?\s*:?\s*([A-HJ-NPR-Z0-9]{17})/i);
+      if (chassisMatch) result.vehicle.vin = chassisMatch[1];
+    }
+
     // Reg No
     if (!result.vehicle.regNo) {
       const regMatch = stripped.match(/\b([A-Z]{2,3}\s?\d{2,3}\s?[A-Z]{2,3}\s?(?:GP|WC|KZN|EC|FS|MP|NW|LP|NC))\b/i);
       if (regMatch) result.vehicle.regNo = regMatch[1].trim();
     }
+    if (!result.vehicle.regNo) {
+      const regLabel = stripped.match(/Reg(?:istration)?\.?\s*(?:No\.?|Number)?\s*:?\s*([A-Z0-9 ]{4,12})/i);
+      if (regLabel) result.vehicle.regNo = regLabel[1].trim();
+    }
 
     // Kilometers
     if (!result.vehicle.kilometers) {
-      const kmMatch = stripped.match(/(?:Mileage|Kilometer|Odometer|KM|km)\s*:?\s*(\d[\d\s]*)/i);
+      const kmMatch = stripped.match(/(?:Mileage|Kilometers?|Odometer|Current\s*KM|KM|km)\s*:?\s*(\d[\d\s,]*)/i);
       if (kmMatch) result.vehicle.kilometers = kmMatch[1].replace(/\s/g, "");
     }
 
     // Customer name
     if (!result.vehicle.customerName) {
-      const nameMatch = stripped.match(/(?:Customer|First\s*Name|Surname|Name)\s*:?\s*(.+)/i);
+      const nameMatch = stripped.match(/(?:Customer|Account\s*Name|First\s*Name|Surname|Client\s*Name|Name)\s*:?\s*(.+)/i);
       if (nameMatch && nameMatch[1].length > 2) result.vehicle.customerName = nameMatch[1].trim();
+    }
+
+    // Engine No
+    if (!result.vehicle.engineNo) {
+      const engMatch = stripped.match(/Engine\s*(?:No\.?|Number)\s*:?\s*(\S+)/i);
+      if (engMatch) result.vehicle.engineNo = engMatch[1];
+    }
+
+    // Vehicle Model / Type
+    if (!result.vehicle.vehicleModel) {
+      const vmMatch = stripped.match(/Vehicle\s*(?:Type|Model|Description)\s*:?\s*(.+)/i);
+      if (vmMatch) result.vehicle.vehicleModel = vmMatch[1].trim();
+    }
+    if (!result.vehicle.modelCode) {
+      const mcMatch = stripped.match(/Model\s*Code\s*:?\s*(\S+)/i);
+      if (mcMatch) result.vehicle.modelCode = mcMatch[1];
+    }
+
+    // Phone
+    if (!result.vehicle.phone) {
+      const phMatch = stripped.match(/(?:Tel|Phone|Mobile|Cell|Contact)\s*:?\s*(\+?\d[\d\s-]{7,})/i);
+      if (phMatch) result.vehicle.phone = phMatch[1].replace(/\s/g, "");
+    }
+
+    // Email
+    if (!result.vehicle.email) {
+      const emMatch = stripped.match(/[\w.+-]+@[\w.-]+\.\w+/);
+      if (emMatch) result.vehicle.email = emMatch[0];
     }
 
     // RO Number
     if (!result.roNumber) {
-      const roMatch = stripped.match(/(?:Job\s*Card|RO|Repair\s*Order)\s*(?:No\.?|Number|#)?\s*:?\s*(\S+)/i);
-      if (roMatch) result.roNumber = roMatch[1];
+      const roMatch = stripped.match(/(?:Job\s*Card|Jobcard|RO|Repair\s*Order)\s*(?:No\.?|Number|#)?\s*:?\s*(\S+)/i);
+      if (roMatch && !/^B-?\d/i.test(roMatch[1])) result.roNumber = roMatch[1];
     }
 
     // Warranty Start Date
     if (!result.vehicle.warrantyStartDate) {
-      const wsdMatch = stripped.match(/(?:Warranty\s*Start|In\s*Service)\s*(?:Date)?\s*:?\s*(\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{4})/i);
+      const wsdMatch = stripped.match(/(?:Warranty\s*Start|In\s*Service|Delivery)\s*(?:Date)?\s*:?\s*(\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{4})/i);
       if (wsdMatch) result.vehicle.warrantyStartDate = wsdMatch[1];
     }
 
@@ -218,21 +256,39 @@ interface PasteExtractorProps {
   onBsiExtracted: (bsi: string) => void;
   onRoExtracted: (ro: string) => void;
   existingLines: WarrantyRepairLine[];
+  variant?: "compact" | "hero";
 }
 
 export function PasteExtractor({
   onRepairLinesExtracted, onPartsExtracted, onVehicleExtracted,
-  onBsiExtracted, onRoExtracted, existingLines,
+  onBsiExtracted, onRoExtracted, existingLines, variant = "compact",
 }: PasteExtractorProps) {
   const [pasteText, setPasteText] = useState("");
   const [preview, setPreview] = useState<ParsedPasteResult | null>(null);
   const [targetLineIdx, setTargetLineIdx] = useState(0);
 
-  const handleParse = useCallback(() => {
-    if (!pasteText.trim()) return;
-    const result = parseQuoteText(pasteText);
+  const runParse = useCallback((text: string) => {
+    if (!text.trim()) { setPreview(null); return; }
+    const result = parseQuoteText(text);
     setPreview(result);
-  }, [pasteText]);
+  }, []);
+
+  const handleParse = useCallback(() => runParse(pasteText), [pasteText, runParse]);
+
+  // Auto-parse when user pastes (Ctrl+V) into the textarea
+  const handlePasteEvent = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = e.clipboardData.getData("text");
+    if (!pasted) return;
+    // Append to existing text (allow multi-block accumulation)
+    const target = e.currentTarget;
+    const start = target.selectionStart ?? pasteText.length;
+    const end = target.selectionEnd ?? pasteText.length;
+    const next = pasteText.slice(0, start) + pasted + pasteText.slice(end);
+    e.preventDefault();
+    setPasteText(next);
+    // Defer parse so state updates first
+    setTimeout(() => runParse(next), 0);
+  }, [pasteText, runParse]);
 
   const handleApplyAll = useCallback(() => {
     if (!preview) return;
@@ -276,35 +332,52 @@ export function PasteExtractor({
     ? preview.rawParts.length + preview.repairLines.reduce((s, l) => s + l.parts.length, 0)
     : 0;
 
+  const isHero = variant === "hero";
+  const detectedAny = preview && (
+    preview.bsiNumber || preview.roNumber || preview.vehicle.vin ||
+    preview.vehicle.regNo || preview.repairLines.length > 0 || preview.rawParts.length > 0
+  );
+
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xs text-primary flex items-center gap-2">
-          <ClipboardPaste className="h-3.5 w-3.5" /> Paste Quote Text
+    <Card className={isHero ? "border-primary/40 bg-primary/5 shadow-sm" : ""}>
+      <CardHeader className={isHero ? "pb-2" : "pb-2"}>
+        <CardTitle className={`flex items-center gap-2 ${isHero ? "text-sm text-primary" : "text-xs text-primary"}`}>
+          {isHero ? <Sparkles className="h-4 w-4" /> : <ClipboardPaste className="h-3.5 w-3.5" />}
+          {isHero ? "Quick Paste — BSI / Jobcard / Quote" : "Paste Quote Text"}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-[10px] text-muted-foreground">
-          Copy text from a BSI quote PDF, email, or spreadsheet and paste below.
-          The parser auto-detects repair lines, parts, vehicle info, and claim numbers.
+        <p className={`text-muted-foreground ${isHero ? "text-xs" : "text-[10px]"}`}>
+          {isHero
+            ? "Copy text from any BSI screen (Quote, Jobcard, Vehicle Details) and paste here — parsing happens automatically. Paste multiple blocks to build up the claim."
+            : "Copy text from a BSI quote PDF, email, or spreadsheet and paste below. The parser auto-detects repair lines, parts, vehicle info, and claim numbers."}
         </p>
 
         <Textarea
           value={pasteText}
           onChange={e => { setPasteText(e.target.value); setPreview(null); }}
-          rows={6}
-          className="text-[10px] font-mono min-h-[100px]"
-          placeholder={`Paste quote text here...\n\nExamples:\n1  18124A  Shock Absorber Front  WAR  2.0  1528.00\nMB3Z18124CE  KIT SHOCK ABSORBER  1  1555.50\n\nOr tab-separated:\nMB3Z18124CE\tKIT SHOCK ABSORBER\t1\t1555.50`}
+          onPaste={handlePasteEvent}
+          rows={isHero ? 5 : 6}
+          className={`font-mono ${isHero ? "text-xs min-h-[110px]" : "text-[10px] min-h-[100px]"}`}
+          placeholder={isHero
+            ? "Paste here from BSI, Jobcard, OASIS, or quote — anything copied from your open systems. Auto-detects on paste."
+            : `Paste quote text here...\n\nExamples:\n1  18124A  Shock Absorber Front  WAR  2.0  1528.00\nMB3Z18124CE  KIT SHOCK ABSORBER  1  1555.50`}
         />
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleParse} disabled={!pasteText.trim()} className="text-xs gap-1.5">
-            <Zap className="h-3 w-3" /> Parse Text
+            <Zap className="h-3 w-3" /> Re-parse
           </Button>
           {pasteText && (
             <Button variant="ghost" size="sm" onClick={() => { setPasteText(""); setPreview(null); }} className="text-xs gap-1 text-destructive">
               <Trash2 className="h-3 w-3" /> Clear
             </Button>
+          )}
+          {isHero && !preview && (
+            <span className="text-[10px] text-muted-foreground">Paste to auto-detect…</span>
+          )}
+          {isHero && preview && !detectedAny && (
+            <span className="text-[10px] text-muted-foreground">No structured data found yet — try copying more.</span>
           )}
         </div>
 

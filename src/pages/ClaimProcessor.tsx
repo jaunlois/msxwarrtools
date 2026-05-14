@@ -195,6 +195,16 @@ export default function ClaimProcessor() {
     setVehicle(prev => ({ ...prev, ...Object.fromEntries(Object.entries(v).filter(([_, val]) => val)) }));
   };
 
+  // When paste populates real data, jump user to the Review tab automatically
+  const handlePasteRepairLinesAuto = (lines: WarrantyRepairLine[]) => {
+    handlePasteRepairLines(lines);
+    if (lines.length > 0) setActiveTab("review");
+  };
+  const handlePasteVehicleAuto = (v: Partial<ClaimVehicleInfo>) => {
+    handlePasteVehicle(v);
+    if (v.vin || v.regNo || v.customerName) setActiveTab(prev => prev === "upload" ? "review" : prev);
+  };
+
   // Build data helpers
   const buildCORData = (lineIndex: number): CORExportData => {
     const line = warrantyLines[lineIndex];
@@ -316,6 +326,17 @@ export default function ClaimProcessor() {
         </Card>
       </div>
 
+      {/* Smart Paste — primary entry. Copy from BSI / Jobcard / Quote and auto-populate. */}
+      <PasteExtractor
+        variant="hero"
+        onRepairLinesExtracted={handlePasteRepairLinesAuto}
+        onPartsExtracted={handlePasteParts}
+        onVehicleExtracted={handlePasteVehicleAuto}
+        onBsiExtracted={(bsi) => { setBsiNumber(bsi); setClaimNumber(normalizeBsiNumber(bsi)); }}
+        onRoExtracted={setRoNumber}
+        existingLines={warrantyLines}
+      />
+
       {/* Claim Summary — always visible once we have data */}
       {hasData && (
         <ClaimSummaryBar
@@ -353,6 +374,12 @@ export default function ClaimProcessor() {
             claimNumber={claimNumber}
             loading={loading}
           />
+
+          <p className="text-xs text-muted-foreground text-center">
+            Tip: you don't have to upload files — paste text from BSI, the Jobcard screen, or OASIS into the
+            <strong className="text-foreground"> Quick Paste </strong>
+            box above and the claim populates automatically.
+          </p>
 
           {loading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -493,7 +520,7 @@ export default function ClaimProcessor() {
             </div>
           )}
 
-          {/* Paste Extractor */}
+          {/* Paste extra parts / additional repair lines */}
           <PasteExtractor
             onRepairLinesExtracted={handlePasteRepairLines}
             onPartsExtracted={handlePasteParts}
@@ -516,7 +543,7 @@ export default function ClaimProcessor() {
           {warrantyLines.length === 0 && (
             <Card className="border-dashed">
               <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                No warranty lines detected. Upload a BSI Quote or add a line manually.
+                No warranty lines yet. Paste a BSI quote into the Quick Paste box above, upload a Quote PDF, or add a line manually.
               </CardContent>
             </Card>
           )}
