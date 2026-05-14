@@ -543,7 +543,7 @@ export default function ClaimProcessor() {
           {warrantyLines.length === 0 && (
             <Card className="border-dashed">
               <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                No warranty lines detected. Upload a BSI Quote or add a line manually.
+                No warranty lines yet. Paste a BSI quote into the Quick Paste box above, upload a Quote PDF, or add a line manually.
               </CardContent>
             </Card>
           )}
