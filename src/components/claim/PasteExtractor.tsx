@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ClipboardPaste, Zap, Check, Plus, Trash2 } from "lucide-react";
+import { ClipboardPaste, Zap, Check, Plus, Trash2, Sparkles } from "lucide-react";
 import type { WarrantyRepairLine, ClaimPartLine, ClaimVehicleInfo } from "@/lib/claim-processor/types";
 
 interface ParsedPasteResult {
@@ -52,33 +52,71 @@ function parseQuoteText(text: string): ParsedPasteResult {
       if (vinMatch) result.vehicle.vin = vinMatch[1];
     }
 
+    // Chassis No (BSI Jobcard) — same as VIN
+    if (!result.vehicle.vin) {
+      const chassisMatch = stripped.match(/Chassis\s*(?:No\.?|Number)?\s*:?\s*([A-HJ-NPR-Z0-9]{17})/i);
+      if (chassisMatch) result.vehicle.vin = chassisMatch[1];
+    }
+
     // Reg No
     if (!result.vehicle.regNo) {
       const regMatch = stripped.match(/\b([A-Z]{2,3}\s?\d{2,3}\s?[A-Z]{2,3}\s?(?:GP|WC|KZN|EC|FS|MP|NW|LP|NC))\b/i);
       if (regMatch) result.vehicle.regNo = regMatch[1].trim();
     }
+    if (!result.vehicle.regNo) {
+      const regLabel = stripped.match(/Reg(?:istration)?\.?\s*(?:No\.?|Number)?\s*:?\s*([A-Z0-9 ]{4,12})/i);
+      if (regLabel) result.vehicle.regNo = regLabel[1].trim();
+    }
 
     // Kilometers
     if (!result.vehicle.kilometers) {
-      const kmMatch = stripped.match(/(?:Mileage|Kilometer|Odometer|KM|km)\s*:?\s*(\d[\d\s]*)/i);
+      const kmMatch = stripped.match(/(?:Mileage|Kilometers?|Odometer|Current\s*KM|KM|km)\s*:?\s*(\d[\d\s,]*)/i);
       if (kmMatch) result.vehicle.kilometers = kmMatch[1].replace(/\s/g, "");
     }
 
     // Customer name
     if (!result.vehicle.customerName) {
-      const nameMatch = stripped.match(/(?:Customer|First\s*Name|Surname|Name)\s*:?\s*(.+)/i);
+      const nameMatch = stripped.match(/(?:Customer|Account\s*Name|First\s*Name|Surname|Client\s*Name|Name)\s*:?\s*(.+)/i);
       if (nameMatch && nameMatch[1].length > 2) result.vehicle.customerName = nameMatch[1].trim();
+    }
+
+    // Engine No
+    if (!result.vehicle.engineNo) {
+      const engMatch = stripped.match(/Engine\s*(?:No\.?|Number)\s*:?\s*(\S+)/i);
+      if (engMatch) result.vehicle.engineNo = engMatch[1];
+    }
+
+    // Vehicle Model / Type
+    if (!result.vehicle.vehicleModel) {
+      const vmMatch = stripped.match(/Vehicle\s*(?:Type|Model|Description)\s*:?\s*(.+)/i);
+      if (vmMatch) result.vehicle.vehicleModel = vmMatch[1].trim();
+    }
+    if (!result.vehicle.modelCode) {
+      const mcMatch = stripped.match(/Model\s*Code\s*:?\s*(\S+)/i);
+      if (mcMatch) result.vehicle.modelCode = mcMatch[1];
+    }
+
+    // Phone
+    if (!result.vehicle.phone) {
+      const phMatch = stripped.match(/(?:Tel|Phone|Mobile|Cell|Contact)\s*:?\s*(\+?\d[\d\s-]{7,})/i);
+      if (phMatch) result.vehicle.phone = phMatch[1].replace(/\s/g, "");
+    }
+
+    // Email
+    if (!result.vehicle.email) {
+      const emMatch = stripped.match(/[\w.+-]+@[\w.-]+\.\w+/);
+      if (emMatch) result.vehicle.email = emMatch[0];
     }
 
     // RO Number
     if (!result.roNumber) {
-      const roMatch = stripped.match(/(?:Job\s*Card|RO|Repair\s*Order)\s*(?:No\.?|Number|#)?\s*:?\s*(\S+)/i);
-      if (roMatch) result.roNumber = roMatch[1];
+      const roMatch = stripped.match(/(?:Job\s*Card|Jobcard|RO|Repair\s*Order)\s*(?:No\.?|Number|#)?\s*:?\s*(\S+)/i);
+      if (roMatch && !/^B-?\d/i.test(roMatch[1])) result.roNumber = roMatch[1];
     }
 
     // Warranty Start Date
     if (!result.vehicle.warrantyStartDate) {
-      const wsdMatch = stripped.match(/(?:Warranty\s*Start|In\s*Service)\s*(?:Date)?\s*:?\s*(\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{4})/i);
+      const wsdMatch = stripped.match(/(?:Warranty\s*Start|In\s*Service|Delivery)\s*(?:Date)?\s*:?\s*(\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{4})/i);
       if (wsdMatch) result.vehicle.warrantyStartDate = wsdMatch[1];
     }
 
