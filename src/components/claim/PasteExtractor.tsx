@@ -256,21 +256,39 @@ interface PasteExtractorProps {
   onBsiExtracted: (bsi: string) => void;
   onRoExtracted: (ro: string) => void;
   existingLines: WarrantyRepairLine[];
+  variant?: "compact" | "hero";
 }
 
 export function PasteExtractor({
   onRepairLinesExtracted, onPartsExtracted, onVehicleExtracted,
-  onBsiExtracted, onRoExtracted, existingLines,
+  onBsiExtracted, onRoExtracted, existingLines, variant = "compact",
 }: PasteExtractorProps) {
   const [pasteText, setPasteText] = useState("");
   const [preview, setPreview] = useState<ParsedPasteResult | null>(null);
   const [targetLineIdx, setTargetLineIdx] = useState(0);
 
-  const handleParse = useCallback(() => {
-    if (!pasteText.trim()) return;
-    const result = parseQuoteText(pasteText);
+  const runParse = useCallback((text: string) => {
+    if (!text.trim()) { setPreview(null); return; }
+    const result = parseQuoteText(text);
     setPreview(result);
-  }, [pasteText]);
+  }, []);
+
+  const handleParse = useCallback(() => runParse(pasteText), [pasteText, runParse]);
+
+  // Auto-parse when user pastes (Ctrl+V) into the textarea
+  const handlePasteEvent = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = e.clipboardData.getData("text");
+    if (!pasted) return;
+    // Append to existing text (allow multi-block accumulation)
+    const target = e.currentTarget;
+    const start = target.selectionStart ?? pasteText.length;
+    const end = target.selectionEnd ?? pasteText.length;
+    const next = pasteText.slice(0, start) + pasted + pasteText.slice(end);
+    e.preventDefault();
+    setPasteText(next);
+    // Defer parse so state updates first
+    setTimeout(() => runParse(next), 0);
+  }, [pasteText, runParse]);
 
   const handleApplyAll = useCallback(() => {
     if (!preview) return;
@@ -314,35 +332,52 @@ export function PasteExtractor({
     ? preview.rawParts.length + preview.repairLines.reduce((s, l) => s + l.parts.length, 0)
     : 0;
 
+  const isHero = variant === "hero";
+  const detectedAny = preview && (
+    preview.bsiNumber || preview.roNumber || preview.vehicle.vin ||
+    preview.vehicle.regNo || preview.repairLines.length > 0 || preview.rawParts.length > 0
+  );
+
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xs text-primary flex items-center gap-2">
-          <ClipboardPaste className="h-3.5 w-3.5" /> Paste Quote Text
+    <Card className={isHero ? "border-primary/40 bg-primary/5 shadow-sm" : ""}>
+      <CardHeader className={isHero ? "pb-2" : "pb-2"}>
+        <CardTitle className={`flex items-center gap-2 ${isHero ? "text-sm text-primary" : "text-xs text-primary"}`}>
+          {isHero ? <Sparkles className="h-4 w-4" /> : <ClipboardPaste className="h-3.5 w-3.5" />}
+          {isHero ? "Quick Paste — BSI / Jobcard / Quote" : "Paste Quote Text"}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-[10px] text-muted-foreground">
-          Copy text from a BSI quote PDF, email, or spreadsheet and paste below.
-          The parser auto-detects repair lines, parts, vehicle info, and claim numbers.
+        <p className={`text-muted-foreground ${isHero ? "text-xs" : "text-[10px]"}`}>
+          {isHero
+            ? "Copy text from any BSI screen (Quote, Jobcard, Vehicle Details) and paste here — parsing happens automatically. Paste multiple blocks to build up the claim."
+            : "Copy text from a BSI quote PDF, email, or spreadsheet and paste below. The parser auto-detects repair lines, parts, vehicle info, and claim numbers."}
         </p>
 
         <Textarea
           value={pasteText}
           onChange={e => { setPasteText(e.target.value); setPreview(null); }}
-          rows={6}
-          className="text-[10px] font-mono min-h-[100px]"
-          placeholder={`Paste quote text here...\n\nExamples:\n1  18124A  Shock Absorber Front  WAR  2.0  1528.00\nMB3Z18124CE  KIT SHOCK ABSORBER  1  1555.50\n\nOr tab-separated:\nMB3Z18124CE\tKIT SHOCK ABSORBER\t1\t1555.50`}
+          onPaste={handlePasteEvent}
+          rows={isHero ? 5 : 6}
+          className={`font-mono ${isHero ? "text-xs min-h-[110px]" : "text-[10px] min-h-[100px]"}`}
+          placeholder={isHero
+            ? "Paste here from BSI, Jobcard, OASIS, or quote — anything copied from your open systems. Auto-detects on paste."
+            : `Paste quote text here...\n\nExamples:\n1  18124A  Shock Absorber Front  WAR  2.0  1528.00\nMB3Z18124CE  KIT SHOCK ABSORBER  1  1555.50`}
         />
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleParse} disabled={!pasteText.trim()} className="text-xs gap-1.5">
-            <Zap className="h-3 w-3" /> Parse Text
+            <Zap className="h-3 w-3" /> Re-parse
           </Button>
           {pasteText && (
             <Button variant="ghost" size="sm" onClick={() => { setPasteText(""); setPreview(null); }} className="text-xs gap-1 text-destructive">
               <Trash2 className="h-3 w-3" /> Clear
             </Button>
+          )}
+          {isHero && !preview && (
+            <span className="text-[10px] text-muted-foreground">Paste to auto-detect…</span>
+          )}
+          {isHero && preview && !detectedAny && (
+            <span className="text-[10px] text-muted-foreground">No structured data found yet — try copying more.</span>
           )}
         </div>
 
