@@ -7,6 +7,7 @@ import { Layout } from "@/components/Layout";
 import Index from "./pages/Index";
 import SLTLookup from "./pages/SLTLookup";
 import PartsCoverage from "./pages/PartsCoverage";
+import FactoryWarranty from "./pages/FactoryWarranty";
 import OverlapChecker from "./pages/OverlapChecker";
 import ScheduledMaintenance from "./pages/ScheduledMaintenance";
 import CCCCodes from "./pages/CCCCodes";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/slt" element={<SLTLookup />} />
             <Route path="/parts" element={<PartsCoverage />} />
+            <Route path="/factory-warranty" element={<FactoryWarranty />} />
             <Route path="/overlaps" element={<OverlapChecker />} />
             <Route path="/maintenance" element={<ScheduledMaintenance />} />
             <Route path="/ccc" element={<CCCCodes />} />

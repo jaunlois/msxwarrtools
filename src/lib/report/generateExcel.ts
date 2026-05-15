@@ -6,11 +6,7 @@ export function generateWeeklyReport(data: ReportData): ArrayBuffer {
   const wb = XLSX.utils.book_new();
   createWIPSheet(wb, data);
   createAgeAnalysisSheet(wb, data);
-  createPlaceholderSheet(wb, 'DMS Screenshot', [
-    'Screenshot to be taken directly from DMS showing totals on Age - do not crop out date and time in the right bottom corner',
-    'NOTE THAT DMS TOTAL SHOULD MATCH THAT OF YOUR EXCEL RECONCILIATION TOTAL.',
-    'If no access to Age on DMS - Age should be supplied in PDF and added below.',
-  ]);
+  createDmsSheet(wb, data);
   createPartsReturnSheet(wb);
   createPlaceholderSheet(wb, 'DAS', ['Snip of DAS']);
   createScrapListSheet(wb);
@@ -68,6 +64,24 @@ function createPlaceholderSheet(wb: XLSX.WorkBook, name: string, instructions: s
   const ws = XLSX.utils.aoa_to_sheet(instructions.map(i => [i]));
   ws['!cols'] = [{ wch: 120 }];
   XLSX.utils.book_append_sheet(wb, ws, name);
+}
+
+function createDmsSheet(wb: XLSX.WorkBook, data: ReportData) {
+  const header: string[][] = [
+    ['Screenshot to be taken directly from DMS showing totals on Age - do not crop out date and time in the right bottom corner'],
+    ['NOTE THAT DMS TOTAL SHOULD MATCH THAT OF YOUR EXCEL RECONCILIATION TOTAL.'],
+    ['If no access to Age on DMS - Age should be supplied in PDF and added below.'],
+    [],
+  ];
+  const rows: any[][] = [...header];
+  if (data.dmsRawLines && data.dmsRawLines.length) {
+    rows.push(['--- DMS Raw Data Dump ---']);
+    rows.push([]);
+    for (const r of data.dmsRawLines) rows.push(r);
+  }
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = Array(20).fill({ wch: 18 });
+  XLSX.utils.book_append_sheet(wb, ws, 'DMS Screenshot');
 }
 
 function createPartsReturnSheet(wb: XLSX.WorkBook) {

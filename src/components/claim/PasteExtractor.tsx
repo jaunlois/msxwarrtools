@@ -21,6 +21,35 @@ function cleanPrice(s: string): number {
   return parseFloat(s.replace(/[R\s,]/g, "")) || 0;
 }
 
+// Ford part-number pattern: 5+ alphanumerics with both letters & digits.
+// Matches: MB3Z18124CE, W721979S440, 18124A, AB39-19A549-AC etc.
+const PART_RE = /\b([A-Z][A-Z0-9-]{4,}[A-Z0-9])\b/g;
+
+function isPartCode(s: string): boolean {
+  return /[A-Z]/.test(s) && /\d/.test(s) && s.replace(/-/g, "").length >= 5;
+}
+
+/**
+ * Pre-split a single line that contains MULTIPLE part-number patterns
+ * into one logical line per part. Handles BSI/Excel pastes where rows
+ * collapse onto a single line.
+ */
+function splitLineIntoPartRows(line: string): string[] {
+  const upper = line.toUpperCase();
+  const matches: { code: string; index: number }[] = [];
+  for (const m of upper.matchAll(PART_RE)) {
+    if (isPartCode(m[1])) matches.push({ code: m[1], index: m.index ?? 0 });
+  }
+  if (matches.length < 2) return [line];
+  const out: string[] = [];
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].index;
+    const end = i + 1 < matches.length ? matches[i + 1].index : line.length;
+    out.push(line.substring(start, end).trim());
+  }
+  return out;
+}
+
 /**
  * Smart parser that handles multiple quote text formats:
  * - BSI quote copy-paste (table rows)
@@ -28,7 +57,18 @@ function cleanPrice(s: string): number {
  * - Free-text with part numbers and prices
  */
 function parseQuoteText(text: string): ParsedPasteResult {
-  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  // Normalize: split on newlines and semicolons; expand multi-part lines.
+  const rawLines = text
+    .split(/[\r\n;]+/)
+    .map(l => l.trim())
+    .filter(Boolean);
+  const lines: string[] = [];
+  for (const l of rawLines) {
+    // If a line has tab-separated cells, keep as-is (handled later).
+    // If it has 2+ part codes inline, split it.
+    if (!/\t/.test(l)) lines.push(...splitLineIntoPartRows(l));
+    else lines.push(l);
+  }
   const result: ParsedPasteResult = {
     vehicle: {}, repairLines: [], rawParts: [], bsiNumber: "", roNumber: "", dealerName: "",
   };

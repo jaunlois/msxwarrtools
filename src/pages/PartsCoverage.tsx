@@ -87,7 +87,8 @@ export default function PartsCoverage() {
                 <TableHead className="text-xs text-center">WearCare</TableHead>
                 <TableHead className="text-xs text-center">Powertrain</TableHead>
                 <TableHead className="text-xs text-center">Extra Care</TableHead>
-                <TableHead className="text-xs text-center">Premium</TableHead>
+                <TableHead className="text-xs text-center">Prem. Maint.</TableHead>
+                <TableHead className="text-xs text-center">Premium Care</TableHead>
                 <TableHead className="text-xs">Min. Plan</TableHead>
               </TableRow>
             </TableHeader>
@@ -109,6 +110,9 @@ export default function PartsCoverage() {
                   </TableCell>
                   <TableCell className="text-center">
                     <CoverageIcon covered={part.premiumMaintenance} />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <CoverageIcon covered={part.premiumCare} />
                   </TableCell>
                   <TableCell>
                     <PlanBadge plan={getHighestPlan(part)} />
@@ -164,6 +168,7 @@ function PlanBadge({ plan }: { plan: string }) {
     "Powertrain Care": "bg-primary/10 text-primary border-primary/20",
     "Extra Care": "bg-warning/10 text-warning border-warning/20",
     "Premium Maintenance": "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    "Premium Care": "bg-pink-500/10 text-pink-400 border-pink-500/20",
     "Not Covered": "bg-muted text-muted-foreground border-border",
   };
   return (

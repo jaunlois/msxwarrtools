@@ -1,6 +1,7 @@
 import {
   Gauge,
   Shield,
+  ShieldCheck,
   Clock,
   AlertTriangle,
   FileText,
@@ -30,6 +31,7 @@ const navItems = [
   { title: "Dashboard", url: "/", icon: Gauge },
   { title: "SLT Lookup", url: "/slt", icon: Clock },
   { title: "Parts Coverage", url: "/parts", icon: Shield },
+  { title: "Factory Warranty", url: "/factory-warranty", icon: ShieldCheck },
   { title: "Overlap Checker", url: "/overlaps", icon: AlertTriangle },
   { title: "Scheduled Maintenance", url: "/maintenance", icon: Wrench },
   { title: "CCC Codes", url: "/ccc", icon: FileText },
