@@ -402,7 +402,7 @@ export default function WeeklyReport() {
       </div>
 
       <div className="flex justify-center">
-        <Button size="lg" disabled={ageFiles.length === 0 || isProcessing} onClick={handleProcess} className="px-8">
+        <Button size="lg" disabled={(ageFiles.length === 0 && sbiFiles.length === 0 && wipFiles.length === 0 && dmsFiles.length === 0) || isProcessing} onClick={handleProcess} className="px-8">
           {isProcessing ? 'Processing…' : 'Process Files'}
         </Button>
       </div>
