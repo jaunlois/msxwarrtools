@@ -61,6 +61,7 @@ export interface ReportData {
   sbiInvoices: SBIInvoice[];
   generatedOn: string;
   generatedBy: string;
+  dmsRawLines?: string[][];
 }
 
 export type AppStep = 'upload' | 'review' | 'download';
