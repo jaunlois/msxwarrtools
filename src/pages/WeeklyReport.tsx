@@ -4,9 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Upload, FileText, FileSpreadsheet, X, Download, ArrowLeft, BarChart3 } from 'lucide-react';
+import { Upload, FileText, FileSpreadsheet, X, Download, ArrowLeft, BarChart3, ClipboardPaste, Image as ImageIcon } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { parseAgeAnalysisExcel, parseWIPExcel } from '@/lib/report/parseExcel';
 import { parseSBIPdf } from '@/lib/report/parsePDF';
+import { parseDmsText } from '@/lib/report/parseDmsText';
 import { matchClaimsWithSBI } from '@/lib/report/matchClaims';
 import { generateWeeklyReport, generateSBPayments } from '@/lib/report/generateExcel';
 import { AgeAnalysisClaim, WIPEntry, SBIInvoice } from '@/lib/report/types';
@@ -26,12 +28,21 @@ export default function WeeklyReport() {
   const [ageFiles, setAgeFiles] = useState<File[]>([]);
   const [sbiFiles, setSbiFiles] = useState<File[]>([]);
   const [wipFiles, setWipFiles] = useState<File[]>([]);
+  const [dmsFiles, setDmsFiles] = useState<File[]>([]);
+  const [dmsRawLines, setDmsRawLines] = useState<string[][]>([]);
 
-  const handleDrop = useCallback((e: React.DragEvent, type: 'age' | 'sbi' | 'wip') => {
+  type ZoneType = 'age' | 'sbi' | 'wip' | 'dms';
+
+  const handleDrop = useCallback((e: React.DragEvent, type: ZoneType) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files);
     if (type === 'sbi') {
       setSbiFiles(prev => [...prev, ...files.filter(f => f.name.endsWith('.pdf'))]);
+    } else if (type === 'dms') {
+      setDmsFiles(prev => [...prev, ...files.filter(f =>
+        f.name.endsWith('.txt') || f.name.endsWith('.csv') ||
+        f.type.startsWith('image/') || f.name.match(/\.(png|jpe?g|webp)$/i)
+      )]);
     } else {
       const excels = files.filter(f => f.name.endsWith('.xlsx') || f.name.endsWith('.xls'));
       if (type === 'age') setAgeFiles(prev => [...prev, ...excels]);
@@ -39,18 +50,31 @@ export default function WeeklyReport() {
     }
   }, []);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: 'age' | 'sbi' | 'wip') => {
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: ZoneType) => {
     const files = Array.from(e.target.files || []);
     if (type === 'age') setAgeFiles(prev => [...prev, ...files]);
     else if (type === 'wip') setWipFiles(prev => [...prev, ...files]);
-    else setSbiFiles(prev => [...prev, ...files]);
+    else if (type === 'sbi') setSbiFiles(prev => [...prev, ...files]);
+    else setDmsFiles(prev => [...prev, ...files]);
     e.target.value = '';
   }, []);
 
-  const removeFile = (type: 'age' | 'sbi' | 'wip', index: number) => {
+  const handlePasteText = useCallback((type: ZoneType, text: string) => {
+    if (!text.trim()) return;
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const file = new File([text], `pasted-${type}-${ts}.txt`, { type: 'text/plain' });
+    if (type === 'age') setAgeFiles(prev => [...prev, file]);
+    else if (type === 'wip') setWipFiles(prev => [...prev, file]);
+    else if (type === 'sbi') setSbiFiles(prev => [...prev, file]);
+    else setDmsFiles(prev => [...prev, file]);
+    toast.success(`Pasted ${text.length} chars added as ${file.name}`);
+  }, []);
+
+  const removeFile = (type: ZoneType, index: number) => {
     if (type === 'age') setAgeFiles(prev => prev.filter((_, i) => i !== index));
     else if (type === 'wip') setWipFiles(prev => prev.filter((_, i) => i !== index));
-    else setSbiFiles(prev => prev.filter((_, i) => i !== index));
+    else if (type === 'sbi') setSbiFiles(prev => prev.filter((_, i) => i !== index));
+    else setDmsFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleProcess = useCallback(async () => {
@@ -59,11 +83,18 @@ export default function WeeklyReport() {
       let allClaims: AgeAnalysisClaim[] = [];
       let genOn = '', genBy = '';
       for (const file of ageFiles) {
-        const buffer = await file.arrayBuffer();
-        const result = parseAgeAnalysisExcel(buffer);
-        allClaims = [...allClaims, ...result.claims];
-        if (result.generatedOn) genOn = result.generatedOn;
-        if (result.generatedBy) genBy = result.generatedBy;
+        if (file.name.endsWith('.txt')) {
+          // Treat pasted text as raw DMS-style age data — feed into DMS sheet too
+          const text = await file.text();
+          const parsed = parseDmsText(text);
+          setDmsRawLines(prev => [...prev, ...parsed]);
+        } else {
+          const buffer = await file.arrayBuffer();
+          const result = parseAgeAnalysisExcel(buffer);
+          allClaims = [...allClaims, ...result.claims];
+          if (result.generatedOn) genOn = result.generatedOn;
+          if (result.generatedBy) genBy = result.generatedBy;
+        }
       }
       const seen = new Set<string>();
       allClaims = allClaims.filter(c => {
@@ -84,10 +115,23 @@ export default function WeeklyReport() {
 
       let allWip: WIPEntry[] = [];
       for (const file of wipFiles) {
+        if (file.name.endsWith('.txt')) continue; // skip text for WIP (excel-only parser)
         const buffer = await file.arrayBuffer();
         allWip = [...allWip, ...parseWIPExcel(buffer)];
       }
       setWipEntries(allWip);
+
+      // Process DMS files
+      let dmsRows: string[][] = [];
+      for (const file of dmsFiles) {
+        if (file.name.endsWith('.txt') || file.name.endsWith('.csv')) {
+          const text = await file.text();
+          dmsRows = [...dmsRows, ...parseDmsText(text)];
+        } else {
+          dmsRows.push([`[Image attached: ${file.name}] — paste as snip into DMS Screenshot sheet`]);
+        }
+      }
+      setDmsRawLines(prev => [...prev, ...dmsRows]);
 
       const matched = matchClaimsWithSBI(allClaims, invoices);
       setClaims(matched);
@@ -100,7 +144,7 @@ export default function WeeklyReport() {
     } finally {
       setIsProcessing(false);
     }
-  }, [ageFiles, sbiFiles, wipFiles]);
+  }, [ageFiles, sbiFiles, wipFiles, dmsFiles]);
 
   const handleClaimChange = useCallback((index: number, field: 'totalPD' | 'comment', value: string | number | null) => {
     setClaims(prev => prev.map((c, i) => {
@@ -119,7 +163,7 @@ export default function WeeklyReport() {
 
   const handleDownload = useCallback(() => {
     try {
-      const buf = generateWeeklyReport({ ageAnalysisClaims: claims, wipEntries, sbiInvoices, generatedOn, generatedBy });
+      const buf = generateWeeklyReport({ ageAnalysisClaims: claims, wipEntries, sbiInvoices, generatedOn, generatedBy, dmsRawLines });
       const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -128,7 +172,7 @@ export default function WeeklyReport() {
       URL.revokeObjectURL(a.href);
       toast.success('Report downloaded!');
     } catch (err) { console.error(err); toast.error('Error generating report'); }
-  }, [claims, wipEntries, sbiInvoices, generatedOn, generatedBy]);
+  }, [claims, wipEntries, sbiInvoices, generatedOn, generatedBy, dmsRawLines]);
 
   const handleDownloadSB = useCallback(() => {
     try {
