@@ -350,39 +350,54 @@ export default function WeeklyReport() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <DropZone
           title="Age Analysis Excel(s)"
-          description="Raw DMS export from 28Jaun-Lois system"
-          accept=".xlsx,.xls"
+          description="Excel export — or paste raw text"
+          accept=".xlsx,.xls,.txt"
           type="age"
           icon={<FileSpreadsheet className="h-5 w-5 text-primary" />}
           files={ageFiles}
           onDrop={handleDrop}
           onSelect={handleFileSelect}
           onRemove={removeFile}
+          onPasteText={handlePasteText}
         />
         <DropZone
           title="Self-Billing Invoice PDFs"
-          description="ZA-91106-SB*.pdf files from Ford"
-          accept=".pdf"
+          description="ZA-91106-SB*.pdf — or paste text"
+          accept=".pdf,.txt"
           type="sbi"
           icon={<FileText className="h-5 w-5 text-primary" />}
           files={sbiFiles}
           onDrop={handleDrop}
           onSelect={handleFileSelect}
           onRemove={removeFile}
+          onPasteText={handlePasteText}
         />
         <DropZone
           title="Service WIP Ageing Report"
-          description="WIP export from 28Jaun-Lois system"
-          accept=".xlsx,.xls"
+          description="WIP Excel export"
+          accept=".xlsx,.xls,.txt"
           type="wip"
           icon={<FileSpreadsheet className="h-5 w-5 text-primary" />}
           files={wipFiles}
           onDrop={handleDrop}
           onSelect={handleFileSelect}
           onRemove={removeFile}
+          onPasteText={handlePasteText}
+        />
+        <DropZone
+          title="DMS Screenshot / Raw Dump"
+          description="TXT, CSV or image — or paste DMS text"
+          accept=".txt,.csv,.png,.jpg,.jpeg,.webp"
+          type="dms"
+          icon={<ImageIcon className="h-5 w-5 text-primary" />}
+          files={dmsFiles}
+          onDrop={handleDrop}
+          onSelect={handleFileSelect}
+          onRemove={removeFile}
+          onPasteText={handlePasteText}
         />
       </div>
 
@@ -399,19 +414,22 @@ export default function WeeklyReport() {
 }
 
 function DropZone({
-  title, description, accept, type, icon, files, onDrop, onSelect, onRemove,
+  title, description, accept, type, icon, files, onDrop, onSelect, onRemove, onPasteText,
 }: {
   title: string;
   description: string;
   accept: string;
-  type: 'age' | 'sbi' | 'wip';
+  type: 'age' | 'sbi' | 'wip' | 'dms';
   icon: React.ReactNode;
   files: File[];
-  onDrop: (e: React.DragEvent, type: 'age' | 'sbi' | 'wip') => void;
-  onSelect: (e: React.ChangeEvent<HTMLInputElement>, type: 'age' | 'sbi' | 'wip') => void;
-  onRemove: (type: 'age' | 'sbi' | 'wip', index: number) => void;
+  onDrop: (e: React.DragEvent, type: 'age' | 'sbi' | 'wip' | 'dms') => void;
+  onSelect: (e: React.ChangeEvent<HTMLInputElement>, type: 'age' | 'sbi' | 'wip' | 'dms') => void;
+  onRemove: (type: 'age' | 'sbi' | 'wip' | 'dms', index: number) => void;
+  onPasteText: (type: 'age' | 'sbi' | 'wip' | 'dms', text: string) => void;
 }) {
   const inputId = `file-${type}`;
+  const [showPaste, setShowPaste] = useState(false);
+  const [pasteValue, setPasteValue] = useState('');
   return (
     <Card className="ford-card">
       <CardHeader className="pb-3">
@@ -429,6 +447,44 @@ function DropZone({
           <p className="text-xs text-muted-foreground">Drop files here or click to browse</p>
           <input id={inputId} type="file" accept={accept} multiple className="hidden" onChange={e => onSelect(e, type)} />
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowPaste(s => !s)}
+          className="w-full mt-2 text-xs gap-1.5 h-7"
+        >
+          <ClipboardPaste className="h-3 w-3" />
+          {showPaste ? 'Hide paste box' : 'Or paste raw text'}
+        </Button>
+        {showPaste && (
+          <div className="mt-2 space-y-1.5">
+            <Textarea
+              value={pasteValue}
+              onChange={e => setPasteValue(e.target.value)}
+              onPaste={e => {
+                const t = e.clipboardData.getData('text');
+                if (t) {
+                  e.preventDefault();
+                  onPasteText(type, t);
+                  setPasteValue('');
+                  setShowPaste(false);
+                }
+              }}
+              rows={4}
+              placeholder="Paste copied text from DMS / OWS / system here..."
+              className="text-[10px] font-mono"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!pasteValue.trim()}
+              onClick={() => { onPasteText(type, pasteValue); setPasteValue(''); setShowPaste(false); }}
+              className="text-xs h-7 w-full"
+            >
+              Save pasted text
+            </Button>
+          </div>
+        )}
         {files.length > 0 && (
           <div className="mt-2 space-y-1">
             {files.map((f, i) => (
