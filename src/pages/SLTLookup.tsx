@@ -1,16 +1,30 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronDown, Search } from "lucide-react";
-import { sltSections, type SLTOperation, type SLTSection } from "@/data/slt-data";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, Search, Upload } from "lucide-react";
+import { Link } from "react-router-dom";
+import { type SLTOperation, type SLTSection } from "@/data/slt-data";
+import { getMergedSltSections } from "@/lib/slt/mergedSltData";
 
 export default function SLTLookup() {
   const [search, setSearch] = useState("");
   const [selectedSection, setSelectedSection] = useState<string>("all");
+  const [sltSections, setSltSections] = useState<SLTSection[]>(() => getMergedSltSections());
+
+  useEffect(() => {
+    const refresh = () => setSltSections(getMergedSltSections());
+    window.addEventListener("slt-custom-updated", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("slt-custom-updated", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
 
   const filteredSections = useMemo(() => {
     let sections = selectedSection === "all"
@@ -33,17 +47,25 @@ export default function SLTLookup() {
     }
 
     return sections;
-  }, [search, selectedSection]);
+  }, [search, selectedSection, sltSections]);
 
   const totalOps = filteredSections.reduce((a, s) => a + s.operations.length, 0);
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Standard Labour Time Lookup</h1>
-        <p className="text-sm text-muted-foreground">
-          2022 U704A Everest — Browse by section or search operations
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Standard Labour Time Lookup</h1>
+          <p className="text-sm text-muted-foreground">
+            2022 U704A Everest — Browse by section or search operations
+          </p>
+        </div>
+        <Button asChild variant="outline" size="sm" className="gap-1.5 shrink-0">
+          <Link to="/slt/import">
+            <Upload className="h-3.5 w-3.5" />
+            Bulk Import
+          </Link>
+        </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
