@@ -368,6 +368,41 @@ export default function ClaimProcessor() {
         />
       )}
 
+      {hasData && (
+        <SuggestedFromHistory
+          input={{
+            ccc: cccSuggestions[0]?.code,
+            customerConcern: warrantyLines.map((l) =>
+              `${l.operationDescription} ${getLineComment(l.itemNumber).complaint}`
+            ).join(" "),
+            causalPart: warrantyLines[0]?.parts[0]?.code,
+            model: vehicle.vehicleModel,
+          }}
+          onAddLaborOp={(op) => {
+            const nextNum = warrantyLines.length > 0 ? Math.max(...warrantyLines.map((l) => l.itemNumber)) + 1 : 1;
+            setWarrantyLines((prev) => [...prev, {
+              itemNumber: nextNum, opCode: op.opCode, operationDescription: op.description,
+              paymentMethod: "WAR", labourHours: op.hours, labourAmount: op.hours * labourRate,
+              parts: [], subTotal: 0, vatAmount: 0, total: 0,
+            }]);
+            toast({ title: "Op added", description: `${op.opCode} added as a new line` });
+          }}
+          onAddPart={(p) => {
+            if (warrantyLines.length === 0) {
+              toast({ title: "Add a labor line first", description: "Parts attach to an existing repair line.", variant: "destructive" });
+              return;
+            }
+            const idx = warrantyLines.length - 1;
+            setWarrantyLines((prev) => {
+              const updated = [...prev];
+              updated[idx] = { ...updated[idx], parts: [...updated[idx].parts, { ...p, unitPrice: 0 }] };
+              return updated;
+            });
+            toast({ title: "Part added", description: `${p.code} added to line ${warrantyLines[idx].itemNumber}` });
+          }}
+        />
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="upload" className="gap-1.5">
