@@ -9,6 +9,8 @@ import {
   BarChart3,
   Wrench,
   Car,
+  Brain,
+  Upload,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -30,12 +32,14 @@ import {
 const navItems = [
   { title: "Dashboard", url: "/", icon: Gauge },
   { title: "SLT Lookup", url: "/slt", icon: Clock },
+  { title: "Bulk SLT Import", url: "/slt/import", icon: Upload },
   { title: "Parts Coverage", url: "/parts", icon: Shield },
   { title: "Factory Warranty", url: "/factory-warranty", icon: ShieldCheck },
   { title: "Overlap Checker", url: "/overlaps", icon: AlertTriangle },
   { title: "Scheduled Maintenance", url: "/maintenance", icon: Wrench },
   { title: "CCC Codes", url: "/ccc", icon: FileText },
   { title: "Claim Processor", url: "/cor", icon: FileSpreadsheet },
+  { title: "Claim Library", url: "/claim-library", icon: Brain },
   { title: "Weekly Report", url: "/report", icon: BarChart3 },
 ];
 
