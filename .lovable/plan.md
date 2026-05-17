@@ -1,48 +1,78 @@
 ## Plan
 
-### 1. Parts Coverage — add Premium Care (5th tier)
-The uploaded `Ford_Protect_Coverage_1-2.xlsx` contains 5 sheets: WearCare (1,261), Powertrain (1,233), Extra Care (2,498), Premium Maintenance (6,051), **Premium Care (6,024)**. Currently `src/data/parts-data.ts` only has 4 columns.
+Two new features, both client-side, persisted in `localStorage`. AI-powered extraction uses Lovable AI Gateway (via a tiny edge function) so screenshots can be OCR'd without exposing keys.
 
-- Regenerate `src/data/parts-data.ts` from the xlsx so each part has all 5 boolean flags and a unified description.
-- Add `premiumCare: boolean` to the `PartCoverage` interface, to `PlanTier` type, to `planTierLabels`, and to `getHighestPlan` helper.
-- Add a 5th "Premium Care" column in `src/pages/PartsCoverage.tsx` table + filter dropdown + badge color.
+---
 
-### 2. New page — Ford Factory Warranty Coverage (4yr/120k)
-The PDF `Warranty_Coverage_Table_Final-2.pdf` lists ~150 components with Yes/No coverage, Limited Coverage time/distance, and Comments (e.g. "Brake Pads — 12 months or 15,000km, defects in factory materials covered to 15,000km").
+### 1. Bulk SLT Import (paste text + screenshot OCR)
 
-- New file `src/data/factory-warranty.ts` with `{ item, covered: 'yes'|'no', limited?: string, comments?: string }[]` extracted from the PDF.
-- New page `src/pages/FactoryWarranty.tsx` — searchable table with columns: Item · Covered (✓/✗ badge) · Limited Coverage · Comments. Reuses Parts Coverage layout/styling. **No** plan-tier filters (it's the basic NVLW only).
-- Register route in `src/App.tsx` and add nav entry in `src/components/AppSidebar.tsx` (under Coverage section).
+**New page** `src/pages/SLTImport.tsx` (route `/slt/import`, nav entry under SLT Lookup)
 
-### 3. Weekly Report — 4th upload zone + paste support on all 4
-- Add a 4th `DropZone` for **DMS Age Analysis TXT** (raw text dump like `28Jaun-Lois_ReportData.txt`). Accepts `.txt`. Stored in new `dmsTextFiles` state.
-- Add a new parser `src/lib/report/parseDmsText.ts` that reads the pipe-delimited raw text and extracts `{ claimNo, roNumber, invoiceNo, invoiceDate, total, ageBuckets }` rows + the header (Run By, Date, Time).
-- In `src/lib/report/generateExcel.ts`, replace the `DMS Screenshot` placeholder sheet with a real sheet generated from the parsed DMS text (header banner + tabular rows matching the source layout). Keep placeholder fallback if no TXT supplied.
-- Add **paste-from-clipboard** to every drop zone:
-  - New shared component `src/components/report/UploadOrPaste.tsx` wrapping each zone with a `Paste raw text` toggle that reveals a `<Textarea>` and "Save as virtual file" button. Pasted text becomes a synthetic `File` (via `new File([text], 'pasted-N.txt', { type: 'text/plain' })`) and is added to that section's file list.
-  - For Excel sections (Age, WIP), the paste textarea expects the same kind of text dump as the TXT zone — parsing is delegated to a new text parser that mirrors `parseAgeAnalysisExcel` / `parseWIPExcel` columns.
-- Update `handleProcess` to detect `.txt` files in any zone and route them to the new text parser.
+Two-tab card:
+- **Paste text** — `<Textarea>` accepting tab/space/pipe-separated rows from Ford PTS. Parser `src/lib/slt/parseSltText.ts` detects op-code patterns (`\b\d{2}-\d{2}[A-Z]?\b` or `MT-...`), description, time, and section.
+- **Paste screenshot** — paste-from-clipboard `onPaste` handler captures `image/*`, sends base64 to new edge function `extract-slt-from-image` which calls `google/gemini-3-flash-preview` with a strict JSON schema (`{ rows: [{opCode, description, time, section }] }`). Image never persists server-side.
 
-### 4. Claim Processor — multi-line parts paste fix
-Current bug in `src/components/claim/PasteExtractor.tsx`: `parseQuoteText` reads each input line then runs a single `partMatch` regex per line, but when the user pastes a parts list copied from a single Excel cell or with mixed delimiters it collapses into one part with a long description.
+Both feed into a shared **Review table** (editable cells) → user clicks **Merge into SLT dataset** → entries written to `localStorage` key `slt-custom-entries` (deduped by opCode+section).
 
-- Pre-split each line on additional delimiters: detect lines containing **multiple** Ford part-number patterns and split into separate parts. New helper `extractAllParts(line)` runs `String.matchAll(/\b([A-Z]{1,3}[A-Z0-9]{4,}[A-Z0-9])\b/g)` and slices the surrounding text per match for description/qty/price.
-- When a single pasted block has no newlines but contains 2+ part numbers (very common when copied from BSI parts grid), split on the part-number boundaries before per-line parsing.
-- Tab-separated branch: also handle multi-row paste where each row begins with a part code on a new logical line (split on `\r\n` then `\n` then on `;`).
-- Add unit-style test by pasting a sample like `MB3Z18124CE Strut 1 1555.50 W721979S440 Bolt 4 22.30` — must produce 2 parts.
+**Loader change** `src/data/slt-data.ts`: export a `getSltData()` helper that merges baked-in data with `localStorage` overrides. Update `SLTLookup.tsx` (and Overlap Checker) to call this helper.
 
-### Files touched
-- `src/data/parts-data.ts` (regenerated, +1 field)
-- `src/pages/PartsCoverage.tsx` (5th column)
-- `src/data/factory-warranty.ts` (new)
-- `src/pages/FactoryWarranty.tsx` (new)
-- `src/App.tsx`, `src/components/AppSidebar.tsx` (route + nav)
-- `src/pages/WeeklyReport.tsx` (4th zone, paste UI)
-- `src/components/report/UploadOrPaste.tsx` (new)
-- `src/lib/report/parseDmsText.ts` (new)
-- `src/lib/report/generateExcel.ts` (real DMS sheet)
-- `src/components/claim/PasteExtractor.tsx` (multi-part split)
+Manage panel on the same page: list custom entries, delete row, export/import JSON, clear-all.
+
+---
+
+### 2. OWS Claim Learning Library + Auto-suggest
+
+**New page** `src/pages/ClaimLibrary.tsx` (route `/claim-library`, nav entry under Claim Processor)
+
+- Paste OWS claim text → new parser `src/lib/claim-library/parseOwsText.ts` extracts `{ vin, model, ccc, customerConcern, causalPart, laborOps: [], parts: [], notes }`.
+- Saved record stored in `localStorage` key `claim-library-v1` with id + timestamp.
+- List/search/delete UI; export/import JSON for backup or sharing between devices.
+- **Auto-save toggle**: when ON, every COR generated in Claim Processor is silently appended to the library.
+
+**Suggestion engine** `src/lib/claim-library/suggest.ts`:
+- Input: `{ ccc?, customerConcern?, causalPart?, model? }` from current Claim Processor state.
+- Scores past claims by weighted matches (CCC = 3pts, causal part = 3pts, model = 1pt, fuzzy concern text = 1pt).
+- Returns top 5 with aggregated unique labor ops + parts and "used in N similar claims" badge.
+
+**Claim Processor integration** `src/pages/ClaimProcessor.tsx`:
+- New **Suggested from past claims** panel below the customer-concern section.
+- Each suggested labor op / part has an **Add** button that injects it into the current claim's repair lines (reusing existing add-row handlers).
+- Non-intrusive — collapsed by default if no matches scored above threshold.
+
+---
+
+### Backend bit (only for screenshot OCR)
+
+One Supabase edge function `extract-slt-from-image` using Lovable AI Gateway. Requires enabling Lovable Cloud (one-click). Keeps `LOVABLE_API_KEY` server-side. Returns structured JSON via AI SDK `Output.object`. CORS enabled, `verify_jwt = false`.
+
+Text parsing for SLT and OWS stays 100% in-browser — no backend round-trip.
+
+---
+
+### Files to add / edit
+
+**New**
+- `src/pages/SLTImport.tsx`
+- `src/pages/ClaimLibrary.tsx`
+- `src/components/slt/SltPasteText.tsx`
+- `src/components/slt/SltPasteImage.tsx`
+- `src/components/slt/SltReviewTable.tsx`
+- `src/components/claim/SuggestedFromHistory.tsx`
+- `src/lib/slt/parseSltText.ts`
+- `src/lib/slt/customSltStore.ts` (localStorage CRUD)
+- `src/lib/claim-library/parseOwsText.ts`
+- `src/lib/claim-library/store.ts`
+- `src/lib/claim-library/suggest.ts`
+- `supabase/functions/extract-slt-from-image/index.ts`
+
+**Edit**
+- `src/data/slt-data.ts` (add `getSltData()` merger)
+- `src/pages/SLTLookup.tsx`, `src/pages/OverlapChecker.tsx` (use merged data)
+- `src/pages/ClaimProcessor.tsx` (mount Suggested panel + auto-save hook)
+- `src/App.tsx` (2 new routes)
+- `src/components/AppSidebar.tsx` (2 new nav items)
 
 ### Out of scope
-- OCR of the DMS screenshot image itself (TXT dump only).
-- Editing the Factory Warranty list inline (read-only reference).
+- Cross-device sync (browser-only as requested)
+- ML model training — suggestion engine is a deterministic scoring function over your saved claims
+- Editing baked-in SLT entries (custom entries layered on top only)
