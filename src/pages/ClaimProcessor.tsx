@@ -38,6 +38,8 @@ import { RepairLineCard } from "@/components/claim/RepairLineCard";
 import { QuickLinks } from "@/components/claim/QuickLinks";
 import { ClaimSummaryBar } from "@/components/claim/ClaimSummaryBar";
 import { PasteExtractor } from "@/components/claim/PasteExtractor";
+import { SuggestedFromHistory } from "@/components/claim/SuggestedFromHistory";
+import { addLibraryRecord, isAutoSaveOn } from "@/lib/claim-library/store";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 
@@ -280,6 +282,24 @@ export default function ClaimProcessor() {
       const zipBlob = await zip.generateAsync({ type: "blob" });
       saveAs(zipBlob, `${cn}-Claim Pack.zip`);
       toast({ title: "Claim Pack Downloaded", description: `All files bundled into ${cn}-Claim Pack.zip` });
+      if (isAutoSaveOn() && warrantyLines.length > 0) {
+        const firstCmt = getLineComment(warrantyLines[0].itemNumber);
+        addLibraryRecord({
+          source: "claim-processor",
+          vin: vehicle.vin || undefined,
+          model: vehicle.vehicleModel || undefined,
+          causalPart: warrantyLines[0].parts[0]?.code,
+          customerConcern: firstCmt.complaint || warrantyLines[0].operationDescription,
+          cause: firstCmt.cause,
+          correction: firstCmt.correction,
+          laborOps: warrantyLines.map((l) => ({
+            opCode: l.opCode, description: l.operationDescription, hours: l.labourHours,
+          })).filter((o) => o.opCode),
+          parts: warrantyLines.flatMap((l) => l.parts).map((p) => ({
+            code: p.code, description: p.description, qty: p.qty,
+          })).filter((p) => p.code),
+        });
+      }
     } finally {
       setLoading(false);
     }
