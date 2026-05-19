@@ -6,14 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Trash2, Download, Upload, Brain, Save } from "lucide-react";
+import { Trash2, Download, Upload, Brain, Save, Pencil, X, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parseOwsText } from "@/lib/claim-library/parseOwsText";
 import {
   addLibraryRecord, clearLibrary, deleteLibraryRecord, exportLibrary,
-  getLibrary, importLibrary, isAutoSaveOn, setAutoSave,
+  getLibrary, importLibrary, isAutoSaveOn, setAutoSave, updateLibraryRecord,
 } from "@/lib/claim-library/store";
-import type { ClaimLibraryRecord } from "@/lib/claim-library/types";
+import type { ClaimLibraryRecord, LibraryLaborOp, LibraryPart } from "@/lib/claim-library/types";
 
 export default function ClaimLibrary() {
   const { toast } = useToast();
@@ -21,6 +21,8 @@ export default function ClaimLibrary() {
   const [search, setSearch] = useState("");
   const [records, setRecords] = useState<ClaimLibraryRecord[]>([]);
   const [autoSave, setAutoSaveState] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<ClaimLibraryRecord | null>(null);
 
   useEffect(() => {
     setRecords(getLibrary());
@@ -78,6 +80,43 @@ export default function ClaimLibrary() {
       toast({ title: "Import failed", description: String(err), variant: "destructive" });
     }
   };
+
+  const startEdit = (r: ClaimLibraryRecord) => {
+    setEditingId(r.id);
+    setDraft(JSON.parse(JSON.stringify(r)));
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraft(null);
+  };
+  const commitEdit = () => {
+    if (!draft || !editingId) return;
+    updateLibraryRecord(editingId, {
+      ccc: draft.ccc?.trim() || undefined,
+      causalPart: draft.causalPart?.trim() || undefined,
+      customerConcern: draft.customerConcern?.trim() || undefined,
+      cause: draft.cause?.trim() || undefined,
+      correction: draft.correction?.trim() || undefined,
+      laborOps: draft.laborOps.filter((o) => o.opCode.trim()),
+      parts: draft.parts.filter((p) => p.code.trim()),
+    });
+    toast({ title: "Claim updated" });
+    cancelEdit();
+  };
+  const updateDraft = (patch: Partial<ClaimLibraryRecord>) =>
+    setDraft((d) => (d ? { ...d, ...patch } : d));
+  const updateOp = (i: number, patch: Partial<LibraryLaborOp>) =>
+    setDraft((d) => d ? { ...d, laborOps: d.laborOps.map((o, idx) => idx === i ? { ...o, ...patch } : o) } : d);
+  const removeOp = (i: number) =>
+    setDraft((d) => d ? { ...d, laborOps: d.laborOps.filter((_, idx) => idx !== i) } : d);
+  const addOp = () =>
+    setDraft((d) => d ? { ...d, laborOps: [...d.laborOps, { opCode: "", description: "", hours: 0 }] } : d);
+  const updatePart = (i: number, patch: Partial<LibraryPart>) =>
+    setDraft((d) => d ? { ...d, parts: d.parts.map((p, idx) => idx === i ? { ...p, ...patch } : p) } : d);
+  const removePart = (i: number) =>
+    setDraft((d) => d ? { ...d, parts: d.parts.filter((_, idx) => idx !== i) } : d);
+  const addPart = () =>
+    setDraft((d) => d ? { ...d, parts: [...d.parts, { code: "", description: "", qty: 1 }] } : d);
 
   return (
     <div className="space-y-4 max-w-6xl">
@@ -166,7 +205,90 @@ export default function ClaimLibrary() {
             <p className="text-xs text-muted-foreground">No claims match.</p>
           ) : (
             <div className="space-y-2">
-              {filtered.map((r) => (
+              {filtered.map((r) => {
+                const isEditing = editingId === r.id && draft;
+                if (isEditing && draft) {
+                  return (
+                    <div key={r.id} className="border rounded p-3 bg-card space-y-3 border-primary/50">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-primary">Editing claim</span>
+                        <div className="flex gap-1">
+                          <Button size="sm" onClick={commitEdit} className="h-7 gap-1.5">
+                            <Save className="h-3.5 w-3.5" /> Save
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={cancelEdit} className="h-7 gap-1.5">
+                            <X className="h-3.5 w-3.5" /> Cancel
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] uppercase text-muted-foreground">CCC</Label>
+                          <Input value={draft.ccc ?? ""} onChange={(e) => updateDraft({ ccc: e.target.value })} className="h-8 text-xs font-mono" />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] uppercase text-muted-foreground">Causal part</Label>
+                          <Input value={draft.causalPart ?? ""} onChange={(e) => updateDraft({ causalPart: e.target.value })} className="h-8 text-xs font-mono" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-[10px] uppercase text-muted-foreground">Customer concern</Label>
+                        <Textarea value={draft.customerConcern ?? ""} onChange={(e) => updateDraft({ customerConcern: e.target.value })} rows={2} className="text-xs" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] uppercase text-muted-foreground">Cause</Label>
+                          <Textarea value={draft.cause ?? ""} onChange={(e) => updateDraft({ cause: e.target.value })} rows={2} className="text-xs" />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] uppercase text-muted-foreground">Correction</Label>
+                          <Textarea value={draft.correction ?? ""} onChange={(e) => updateDraft({ correction: e.target.value })} rows={2} className="text-xs" />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Labor ops</Label>
+                          <Button size="sm" variant="ghost" className="h-6 gap-1 text-xs" onClick={addOp}>
+                            <Plus className="h-3 w-3" /> Add op
+                          </Button>
+                        </div>
+                        <div className="space-y-1">
+                          {draft.laborOps.map((o, i) => (
+                            <div key={i} className="flex gap-1.5 items-center">
+                              <Input value={o.opCode} onChange={(e) => updateOp(i, { opCode: e.target.value })} placeholder="Op code" className="h-7 text-xs font-mono w-28" />
+                              <Input value={o.description} onChange={(e) => updateOp(i, { description: e.target.value })} placeholder="Description" className="h-7 text-xs flex-1" />
+                              <Input type="number" step="0.1" value={o.hours} onChange={(e) => updateOp(i, { hours: parseFloat(e.target.value) || 0 })} placeholder="Hrs" className="h-7 text-xs w-16" />
+                              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeOp(i)}>
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Parts</Label>
+                          <Button size="sm" variant="ghost" className="h-6 gap-1 text-xs" onClick={addPart}>
+                            <Plus className="h-3 w-3" /> Add part
+                          </Button>
+                        </div>
+                        <div className="space-y-1">
+                          {draft.parts.map((p, i) => (
+                            <div key={i} className="flex gap-1.5 items-center">
+                              <Input value={p.code} onChange={(e) => updatePart(i, { code: e.target.value })} placeholder="Part code" className="h-7 text-xs font-mono w-32" />
+                              <Input value={p.description} onChange={(e) => updatePart(i, { description: e.target.value })} placeholder="Description" className="h-7 text-xs flex-1" />
+                              <Input type="number" step="1" value={p.qty} onChange={(e) => updatePart(i, { qty: parseInt(e.target.value) || 0 })} placeholder="Qty" className="h-7 text-xs w-16" />
+                              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removePart(i)}>
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
                 <div key={r.id} className="border rounded p-3 bg-card">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -195,12 +317,18 @@ export default function ClaimLibrary() {
                         {r.parts.length > 6 && <span className="text-[10px] text-muted-foreground">+{r.parts.length - 6}</span>}
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => deleteLibraryRecord(r.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(r)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteLibraryRecord(r.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
