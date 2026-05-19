@@ -28,6 +28,10 @@ export function deleteLibraryRecord(id: string) {
   saveLibrary(getLibrary().filter((r) => r.id !== id));
 }
 
+export function updateLibraryRecord(id: string, patch: Partial<ClaimLibraryRecord>) {
+  saveLibrary(getLibrary().map((r) => (r.id === id ? { ...r, ...patch, id: r.id, savedAt: r.savedAt } : r)));
+}
+
 export function clearLibrary() {
   saveLibrary([]);
 }
