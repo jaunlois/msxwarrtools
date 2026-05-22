@@ -11,6 +11,7 @@ import {
   Car,
   Brain,
   Bot,
+  Sparkles,
   Upload,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -42,6 +43,7 @@ const navItems = [
   { title: "Claim Processor", url: "/cor", icon: FileSpreadsheet },
   { title: "Claim Library", url: "/claim-library", icon: Brain },
   { title: "Warranty Consultant", url: "/consultant", icon: Bot },
+  { title: "Qwen Chat", url: "/qwen", icon: Sparkles },
   { title: "Weekly Report", url: "/report", icon: BarChart3 },
 ];
 
