@@ -108,7 +108,10 @@ export default function QwenChat() {
       };
       const resp = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
         body: JSON.stringify(body),
       });
       if (!resp.ok) {
@@ -140,7 +143,9 @@ export default function QwenChat() {
     const url = `${settings.baseUrl.replace(/\/$/, "")}/models`;
     const start = Date.now();
     try {
-      const resp = await fetch(url);
+      const resp = await fetch(url, {
+        headers: { "ngrok-skip-browser-warning": "true" },
+      });
       const ms = Date.now() - start;
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
