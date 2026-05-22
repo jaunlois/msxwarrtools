@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
   preview: {
     host: "0.0.0.0",
     port: Number(process.env.PORT) || 8080,
-    allowedHosts: ["msxwarrtools.onrender.com"],
+    allowedHosts: true,
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
