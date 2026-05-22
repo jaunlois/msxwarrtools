@@ -14,6 +14,7 @@ import ScheduledMaintenance from "./pages/ScheduledMaintenance";
 import CCCCodes from "./pages/CCCCodes";
 import ClaimProcessor from "./pages/ClaimProcessor";
 import ClaimLibrary from "./pages/ClaimLibrary";
+import WarrantyConsultant from "./pages/WarrantyConsultant";
 import WeeklyReport from "./pages/WeeklyReport";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/ccc" element={<CCCCodes />} />
             <Route path="/cor" element={<ClaimProcessor />} />
             <Route path="/claim-library" element={<ClaimLibrary />} />
+            <Route path="/consultant" element={<WarrantyConsultant />} />
             <Route path="/report" element={<WeeklyReport />} />
           </Route>
           <Route path="*" element={<NotFound />} />

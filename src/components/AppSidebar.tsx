@@ -10,6 +10,7 @@ import {
   Wrench,
   Car,
   Brain,
+  Bot,
   Upload,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -40,6 +41,7 @@ const navItems = [
   { title: "CCC Codes", url: "/ccc", icon: FileText },
   { title: "Claim Processor", url: "/cor", icon: FileSpreadsheet },
   { title: "Claim Library", url: "/claim-library", icon: Brain },
+  { title: "Warranty Consultant", url: "/consultant", icon: Bot },
   { title: "Weekly Report", url: "/report", icon: BarChart3 },
 ];
 
