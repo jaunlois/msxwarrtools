@@ -6,8 +6,8 @@ import { getCustomParts, upsertCustomPart } from "@/lib/parts/customPartsStore";
 import { factoryWarrantyData } from "@/data/factory-warranty";
 import { addCustomEntries } from "@/lib/slt/customSltStore";
 import { upsertCustomCcc } from "@/lib/ccc/customCccStore";
-import { getLibrary, addLibraryRecord } from "@/lib/claim-library/store";
-import { scoreClaims } from "@/lib/claim-library/suggest";
+import { addLibraryRecord } from "@/lib/claim-library/store";
+import { suggestFromLibrary } from "@/lib/claim-library/suggest";
 
 export interface ToolDef {
   type: "function";
@@ -265,9 +265,7 @@ function runFactoryLookup(query: string) {
 }
 
 function runLibrarySearch(filter: any) {
-  const library = getLibrary();
-  const scored = scoreClaims(library, filter).slice(0, 5);
-  return { matches: scored };
+  return suggestFromLibrary(filter, 5);
 }
 
 // -------- write executors (called only after user Apply) --------
