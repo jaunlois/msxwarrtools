@@ -37,6 +37,21 @@ if tokenizer is None or model is None:
         "See colab/README.md."
     )
 
+# The LoRA repo Nasim435/Qwen-3B-Automotive-4000 doesn't ship tokenizer_config.json,
+# so the loaded tokenizer has no chat_template. Pull the base model's tokenizer
+# (which is fully compatible — same vocab, same special tokens).
+if getattr(tokenizer, "chat_template", None) is None:
+    print("Tokenizer missing chat_template — reloading from base Qwen2.5-3B-Instruct")
+    from transformers import AutoTokenizer as _AutoTok
+    _base = _AutoTok.from_pretrained("Qwen/Qwen2.5-3B-Instruct", trust_remote_code=True)
+    _base.padding_side = "left"
+    if _base.pad_token is None:
+        _base.pad_token = _base.eos_token
+    tokenizer = _base
+    _nb_ns["tokenizer"] = tokenizer
+    model.config.pad_token_id = tokenizer.pad_token_id
+    print("Chat template ready:", bool(tokenizer.chat_template))
+
 # --- Imports that need the venv from requirements.txt ---------------------
 import nest_asyncio
 import torch
