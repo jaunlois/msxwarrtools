@@ -13,6 +13,7 @@ import os
 import subprocess
 import threading
 import time
+import traceback
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -40,8 +41,9 @@ if tokenizer is None or model is None:
 import nest_asyncio
 import torch
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from pyngrok import conf, ngrok
 
@@ -73,6 +75,30 @@ class ChatRequest(BaseModel):
     max_tokens: Optional[int] = 400
     tools: Optional[List[Dict[str, Any]]] = None
     tool_choice: Optional[Any] = None
+
+
+@app.exception_handler(Exception)
+async def all_exception_handler(request: Request, exc: Exception):
+    tb = traceback.format_exc()
+    print("\n" + "!" * 60)
+    print(f"ERROR @ {request.method} {request.url.path}")
+    print(tb)
+    print("!" * 60 + "\n")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "type": type(exc).__name__,
+                "message": str(exc),
+                "tail": tb.strip().splitlines()[-12:],
+            }
+        },
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
 
 
 @app.get("/")
