@@ -35,6 +35,11 @@ const CCCCodes = () => {
 
   return (
     <div className="space-y-4">
+      <PageMeta
+        title="CCC Codes — Customer Concern Code Reference"
+        description="Search over 300 Ford Customer Concern Codes with quick-copy for warranty claim forms and OWS submissions."
+        path="/ccc"
+      />
       <div>
         <h1 className="text-2xl font-bold text-foreground">Customer Concern Codes</h1>
         <p className="text-sm text-muted-foreground mt-1">

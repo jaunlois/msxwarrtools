@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AlertTriangle, CheckCircle, Plus, X } from "lucide-react";
 import { checkOverlaps, type OverlapConflict } from "@/data/slt-data";
+import { PageMeta } from "@/components/PageMeta";
 
 export default function OverlapChecker() {
   const [opCodes, setOpCodes] = useState<string[]>([]);
@@ -27,6 +28,11 @@ export default function OverlapChecker() {
 
   return (
     <div className="space-y-4">
+      <PageMeta
+        title="Overlap Checker — Validate Ford Op Codes"
+        description="Add multiple Ford operation codes and instantly flag warranty claim conflicts and overlap rule violations."
+        path="/overlaps"
+      />
       <div>
         <h1 className="text-2xl font-bold">Overlap Validation Checker</h1>
         <p className="text-sm text-muted-foreground">
@@ -76,6 +82,7 @@ export default function OverlapChecker() {
                     {code}
                     <button
                       onClick={() => removeOp(code)}
+                      aria-label={`Remove operation ${code}`}
                       className="ml-2 hover:opacity-70"
                     >
                       <X className="h-3 w-3" />

@@ -18,6 +18,7 @@ import {
   exportCustomEntries, getCustomEntries, importCustomEntries,
   type CustomSltEntry,
 } from "@/lib/slt/customSltStore";
+import { PageMeta } from "@/components/PageMeta";
 
 export default function SLTImport() {
   const { toast } = useToast();
@@ -158,6 +159,11 @@ export default function SLTImport() {
 
   return (
     <div className="space-y-4 max-w-6xl">
+      <PageMeta
+        title="Bulk SLT Import — PTS Text, Screenshot, PDF & HTML"
+        description="Import Ford PTS standard labour times from pasted text, screenshots, PDF or HTML exports — captures description, op code, and labor time."
+        path="/slt/import"
+      />
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Upload className="h-6 w-6 text-primary" />

@@ -3,6 +3,7 @@ import { Clock, Shield, AlertTriangle, Wrench, FileText, FileSpreadsheet, BarCha
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { sltSections } from "@/data/slt-data";
 import { partsData } from "@/data/parts-data";
+import { PageMeta } from "@/components/PageMeta";
 
 const modules = [
   {
@@ -59,6 +60,11 @@ const modules = [
 const Index = () => {
   return (
     <div className="space-y-6">
+      <PageMeta
+        title="Ford Warranty & Service Tool — Dashboard"
+        description="Quick access to SLT lookup, parts coverage, overlap validation, CCC codes, and BSI claim processing for Ford dealerships."
+        path="/"
+      />
       <div>
         <h1 className="text-2xl font-bold text-foreground">
           Ford Warranty & Service Tool

@@ -13,6 +13,11 @@ export default function ScheduledMaintenance() {
 
   return (
     <div className="space-y-4">
+      <PageMeta
+        title="Scheduled Maintenance — MBASIC Intervals"
+        description="MBASIC service operations and fluid change intervals for Ford drivetrains, including engine oil, brake fluid, and coolant schedules."
+        path="/maintenance"
+      />
       <div>
         <h1 className="text-2xl font-bold">Scheduled Maintenance</h1>
         <p className="text-sm text-muted-foreground">
