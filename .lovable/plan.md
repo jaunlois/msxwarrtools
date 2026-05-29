@@ -1,80 +1,42 @@
-## Warranty Consultant (AI Chat)
+# Enhance Bulk SLT Import
 
-A new **Warranty Consultant** page — an in-app chat that reads claim context, looks things up across your local datasets (SLT, CCC, parts coverage, factory warranty, claim library), and can write back to the local custom overrides when you tell it to.
+The current parser (`src/lib/slt/parseSltText.ts`) only handles one op-code per line and discards the parent operation description. PTS exports look like:
 
-Backend = one streaming edge function calling **Lovable AI** (`google/gemini-3-flash-preview` by default, switchable to `gpt-5-mini` for tougher reasoning). All "database" writes stay client-side in `localStorage` — same model as the existing Bulk SLT Import and Claim Library — so nothing leaves the browser except the chat turn itself. This requires **Lovable Cloud** to be enabled (one click) for the edge function + `LOVABLE_API_KEY`.
+```
+Weatherstrip - Front Door Glass Inside (21456/ 21457) - Replace
+Double Cab,Single Cab....ONE 21456A 0.3 Double Cab,Single Cab....BOTH 21456AT 0.6
+```
 
----
+…where the header line carries the real description, and the next line packs **multiple** `qualifier + opCode + time` triples on a single line. The same shape comes out of the PTS HTML/PDF/MHTML exports (one table-row per qualifier, but they collapse into one text line on copy/PDF-extract).
 
-### What it can do
+## Changes
 
-**Read tools (auto, no confirmation)**
-- `lookup_slt(opCodeOrText, section?)` — searches merged SLT (baked-in + custom) and returns op-code, description, time, section.
-- `lookup_ccc(query)` — searches CCC dataset by code or symptom text.
-- `lookup_part_coverage(partNumber)` — Ford Protect parts-coverage lookup.
-- `lookup_factory_warranty(category, kms, monthsInService)` — checks 4yr/120k limit + category rules.
-- `search_claim_library(filter)` — finds similar past claims (reuses existing scoring).
-- `check_repeat_repairs(vin, ccc?)` — reuses existing parser logic on stored warranty history if present.
+### 1. Rewrite `src/lib/slt/parseSltText.ts`
+- Walk lines top-to-bottom, tracking the most recent **operation header** (a line that has no op-code/time and ends in something like `- Replace`, `- R&I`, `- Adjust`, etc., or contains `(NNNN/ NNNN)` part-code groups).
+- For each non-header line, repeatedly match the pattern `((qualifier text)?\s+OPCODE\s+TIME)` across the whole line — produces one `ParsedSltRow` per match.
+- Description = `"{parent header} — {qualifier}"` (qualifier cleaned of leading dots/whitespace, e.g. `Double Cab,Single Cab · ONE`). Fallback to parent header only when no qualifier text is present (e.g. single-variant ops like `Tyre- Replace - Two   1007ABA  0.9`).
+- Also handle the simple single-line case still in use (`opcode<TAB>desc<TAB>time`) so existing pastes keep working.
+- Keep `inferSection` but also accept a section banner line like `Section: Wheels, Bearings And Hubs (0000 - 1999)` to set the default section for subsequent rows.
 
-**Write tools (require an inline "Apply" confirmation chip in the chat)**
-- `upsert_slt_entry({section, opCode, description, time, notes?})` → writes to `slt-custom-entries-v1` via existing `addCustomEntries`.
-- `upsert_ccc_entry({code, description, category?, notes?})` → new `ccc-custom-entries-v1` store + merge helper.
-- `upsert_part_coverage({partNumber, plan, covered, notes?})` → new `parts-custom-overrides-v1`.
-- `save_claim_to_library({...})` → existing `addLibraryRecord`.
+### 2. Add PDF / HTML / MHTML upload tab
+New file `src/lib/slt/extractSltDocument.ts`:
+- `.pdf` → use existing `pdfjs-dist` (mirror `src/lib/report/parsePDF.ts` setup) to pull text per page, join with newlines, feed to `parseSltText`.
+- `.html` / `.mhtml` → read as text, decode quoted-printable if MHTML, strip tags with `DOMParser`, preserve row breaks by inserting `\n` before block elements, feed to `parseSltText`.
 
-Every write tool call is **previewed** in the chat with a Apply / Discard chip before anything is committed, so the model can't silently corrupt data.
+Update `src/pages/SLTImport.tsx`:
+- Add a third tab "Upload PDF / HTML" alongside Paste Text and Paste Screenshot.
+- Accept `.pdf,.html,.htm,.mhtml` via file input + drag/drop. Show a small spinner while parsing, then drop results into the same review table.
 
----
+### 3. Review table tweak
+- Show a `notes` column / tooltip when the qualifier is preserved separately so the user can spot multi-variant groupings (optional — falls out naturally if we store qualifier in description).
 
-### How you use it
+## Out of scope
+- No changes to the saved-entry storage format (`CustomSltEntry`) — same shape, just better-populated `description`.
+- No backend/Cloud changes.
 
-1. Sidebar → **Warranty Consultant** (new entry, `Bot` icon, route `/consultant`).
-2. Optional: click **Pull current claim** to inject the current Claim Processor state (VIN, model, CCC, concern, parts, ops) as system context.
-3. Ask things like:
-   - "Customer says AC not cold, 38k km, 14 months in service — what's covered and what SLTs apply?"
-   - "Op code 12-01-01 took 1.8h on this one, update SLT."
-   - "Add CCC F11 = AC compressor noise."
-   - "Is part JK4Z-19E708-A covered under PremiumCare?"
-4. Replies stream token-by-token, with collapsible **Tool calls** showing exactly what it read/wrote.
-
-A **Pull current claim** button works by reading the same `localStorage` keys the Claim Processor writes, plus an optional cross-tab broadcast via `window.dispatchEvent` so an open Claim Processor tab can push state on demand.
-
----
-
-### Technical details
-
-**New files**
-- `supabase/functions/warranty-consultant/index.ts` — streaming chat endpoint, tool-calling loop. System prompt encodes SA Ford rules (ZAR, R5000 parts cap, R764 default labor, 4yr/120k). Tools are declared as JSON-schema; the edge fn executes only the *read* tools server-side using a copy of the static datasets included as JSON imports, and forwards *write* tool calls back to the client as structured "pending action" SSE events.
-- `src/pages/WarrantyConsultant.tsx` — chat UI (messages, streaming, tool-call cards, Apply/Discard chips), built on shadcn `Card`/`ScrollArea`/`Textarea`/`Button`.
-- `src/lib/consultant/tools.ts` — client-side executors for write tools + shared schemas.
-- `src/lib/consultant/clientLookups.ts` — fallback client-side read implementations (used when the user opts to keep everything browser-only — toggle in header).
-- `src/lib/ccc/customCccStore.ts` + `src/lib/ccc/mergedCccData.ts` — mirrors the existing SLT custom-entries pattern.
-- `src/lib/parts/customPartsStore.ts` + merger helper — same pattern for parts coverage overrides.
-
-**Edited**
-- `src/App.tsx` — add `/consultant` route.
-- `src/components/AppSidebar.tsx` — add nav item (`Bot` from lucide).
-- `src/pages/CCCCodes.tsx`, `src/pages/PartsCoverage.tsx` — use the new merged accessors so consultant edits show up there too.
-- `src/pages/SLTLookup.tsx`, `src/pages/OverlapChecker.tsx` — already use merged SLT; no change.
-
-**Model + streaming**
-- Default `google/gemini-3-flash-preview`; user can switch to `openai/gpt-5-mini` from a header dropdown for harder reasoning.
-- SSE streaming, line-by-line parsing per the AI gateway pattern; 429/402 surfaced as toasts.
-
-**Safety**
-- No raw SQL, no server-side writes — all mutations land in `localStorage` only after explicit Apply.
-- Write tool payloads validated with Zod on the client before commit.
-- Auto-save toggle (off by default) lets you skip the Apply chip for routine SLT/CCC upserts during heavy data entry.
-
----
-
-### Out of scope
-- Cross-device sync (still browser-only, matches project memory).
-- Editing baked-in datasets in place — overrides only, exportable as JSON from each manage panel.
-- Voice input.
-
----
-
-### One question before I build
-
-The consultant needs **Lovable Cloud** enabled (free, one click — provisions the edge function + API key). OK to enable it as part of this task?
+## Technical notes
+- Regex sketch for variant extraction:
+  `/([A-Za-z0-9 ,/&().-]*?)\s*([A-Z]{0,2}\d{3,4}[A-Z]{0,4}\d{0,2})\s+(\d{1,2}\.\d)/g`
+  Run with `matchAll`, trim leading `.`/whitespace from group 1.
+- Header detection: line has no op-code match AND (ends with `- Replace|R&I|R & I|Adjust|Inspect|Check|Bleed|Align|Service|Test|Clean|Diagnose` OR contains `(\d{3,5}[/ ]`).
+- MHTML quoted-printable decode: simple `replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_,h)=>String.fromCharCode(parseInt(h,16)))`.
