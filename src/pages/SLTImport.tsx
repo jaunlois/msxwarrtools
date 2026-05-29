@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Upload, Image as ImageIcon, FileText, Loader2, Trash2, Plus, Download, Save } from "lucide-react";
+import { Upload, Image as ImageIcon, FileText, Loader2, Trash2, Plus, Download, Save, FileUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parseSltText, type ParsedSltRow } from "@/lib/slt/parseSltText";
 import { ocrSltImage } from "@/lib/slt/ocrSltImage";
+import { extractSltDocument } from "@/lib/slt/extractSltDocument";
 import {
   addCustomEntries, clearCustomEntries, deleteCustomEntry,
   exportCustomEntries, getCustomEntries, importCustomEntries,
@@ -25,6 +26,7 @@ export default function SLTImport() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [ocrBusy, setOcrBusy] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
+  const [docBusy, setDocBusy] = useState(false);
   const [saved, setSaved] = useState<CustomSltEntry[]>([]);
   const imageDropRef = useRef<HTMLDivElement>(null);
 
@@ -88,6 +90,33 @@ export default function SLTImport() {
     if (file && file.type.startsWith("image/")) await handleImage(file);
   };
 
+  const handleDocument = async (file: File) => {
+    setDocBusy(true);
+    try {
+      const { text: extracted, rows: docRows } = await extractSltDocument(file);
+      setText(extracted);
+      setRows(docRows);
+      toast({
+        title: docRows.length ? "Document parsed" : "Nothing recognised",
+        description: docRows.length
+          ? `${docRows.length} row(s) extracted from ${file.name}. Review before saving.`
+          : "No op codes detected — try pasting the raw text instead.",
+        variant: docRows.length ? undefined : "destructive",
+      });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Could not read document", description: String(err), variant: "destructive" });
+    } finally {
+      setDocBusy(false);
+    }
+  };
+
+  const onDocDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) await handleDocument(file);
+  };
+
   const handleSave = () => {
     const valid = rows.filter((r) => r.opCode && r.description);
     if (valid.length === 0) {
@@ -143,6 +172,7 @@ export default function SLTImport() {
         <TabsList>
           <TabsTrigger value="text" className="gap-1.5"><FileText className="h-3.5 w-3.5" />Paste Text</TabsTrigger>
           <TabsTrigger value="image" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" />Paste / Drop Screenshot</TabsTrigger>
+          <TabsTrigger value="doc" className="gap-1.5"><FileUp className="h-3.5 w-3.5" />Upload PDF / HTML</TabsTrigger>
         </TabsList>
 
         <TabsContent value="text" className="space-y-3">
@@ -197,6 +227,39 @@ export default function SLTImport() {
                 type="file"
                 accept="image/*"
                 onChange={(e) => e.target.files?.[0] && handleImage(e.target.files[0])}
+                className="text-xs"
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="doc" className="space-y-3">
+          <Card>
+            <CardContent className="pt-4 space-y-3">
+              <div
+                onDrop={onDocDrop}
+                onDragOver={(e) => e.preventDefault()}
+                className="border-2 border-dashed border-border rounded-lg p-8 text-center bg-muted/20"
+              >
+                {docBusy ? (
+                  <div className="flex items-center justify-center gap-2 text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Reading document…
+                  </div>
+                ) : (
+                  <>
+                    <FileUp className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm font-medium">Drop a PDF, HTML or MHTML export from Ford PTS</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      The full operation description, op code and labor time are captured for every variant row.
+                    </p>
+                  </>
+                )}
+              </div>
+              <input
+                type="file"
+                accept=".pdf,.html,.htm,.mhtml,.mht"
+                onChange={(e) => e.target.files?.[0] && handleDocument(e.target.files[0])}
                 className="text-xs"
               />
             </CardContent>
