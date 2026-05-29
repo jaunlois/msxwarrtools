@@ -1,3 +1,4 @@
+import { PageMeta } from "@/components/PageMeta";
 import { useState, useMemo } from "react";
 import { Search, Copy, Check, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
