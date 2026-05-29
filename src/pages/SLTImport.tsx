@@ -220,7 +220,7 @@ export default function SLTImport() {
                     Reading screenshot… {ocrProgress}%
                   </div>
                 ) : imagePreview ? (
-                  <img src={imagePreview} alt="Pasted" className="max-h-64 mx-auto rounded" />
+                  <img src={imagePreview} alt="Pasted SLT screenshot preview from Ford PTS" className="max-h-64 mx-auto rounded" />
                 ) : (
                   <>
                     <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -232,6 +232,7 @@ export default function SLTImport() {
               <input
                 type="file"
                 accept="image/*"
+                aria-label="Upload SLT screenshot image file"
                 onChange={(e) => e.target.files?.[0] && handleImage(e.target.files[0])}
                 className="text-xs"
               />
@@ -265,6 +266,7 @@ export default function SLTImport() {
               <input
                 type="file"
                 accept=".pdf,.html,.htm,.mhtml,.mht"
+                aria-label="Upload SLT PDF or HTML document"
                 onChange={(e) => e.target.files?.[0] && handleDocument(e.target.files[0])}
                 className="text-xs"
               />
