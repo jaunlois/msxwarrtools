@@ -18,6 +18,7 @@ import {
   exportCustomEntries, getCustomEntries, importCustomEntries,
   type CustomSltEntry,
 } from "@/lib/slt/customSltStore";
+import { PageMeta } from "@/components/PageMeta";
 
 export default function SLTImport() {
   const { toast } = useToast();
@@ -158,6 +159,11 @@ export default function SLTImport() {
 
   return (
     <div className="space-y-4 max-w-6xl">
+      <PageMeta
+        title="Bulk SLT Import — PTS Text, Screenshot, PDF & HTML"
+        description="Import Ford PTS standard labour times from pasted text, screenshots, PDF or HTML exports — captures description, op code, and labor time."
+        path="/slt/import"
+      />
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Upload className="h-6 w-6 text-primary" />
@@ -214,7 +220,7 @@ export default function SLTImport() {
                     Reading screenshot… {ocrProgress}%
                   </div>
                 ) : imagePreview ? (
-                  <img src={imagePreview} alt="Pasted" className="max-h-64 mx-auto rounded" />
+                  <img src={imagePreview} alt="Pasted SLT screenshot preview from Ford PTS" className="max-h-64 mx-auto rounded" />
                 ) : (
                   <>
                     <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -226,6 +232,7 @@ export default function SLTImport() {
               <input
                 type="file"
                 accept="image/*"
+                aria-label="Upload SLT screenshot image file"
                 onChange={(e) => e.target.files?.[0] && handleImage(e.target.files[0])}
                 className="text-xs"
               />
@@ -259,6 +266,7 @@ export default function SLTImport() {
               <input
                 type="file"
                 accept=".pdf,.html,.htm,.mhtml,.mht"
+                aria-label="Upload SLT PDF or HTML document"
                 onChange={(e) => e.target.files?.[0] && handleDocument(e.target.files[0])}
                 className="text-xs"
               />
@@ -307,7 +315,7 @@ export default function SLTImport() {
                       <Input type="number" step="0.1" value={r.time} onChange={(e) => updateRow(i, { time: parseFloat(e.target.value) || 0 })} className="h-8 text-xs text-right font-mono" />
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeRow(i)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Remove row" onClick={() => removeRow(i)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TableCell>
@@ -382,6 +390,7 @@ export default function SLTImport() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
+                        aria-label={`Delete saved entry ${e.opCode}`}
                         onClick={() => {
                           deleteCustomEntry(e.id);
                           setSaved(getCustomEntries());

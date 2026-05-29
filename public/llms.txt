@@ -1,0 +1,18 @@
+# Ford Warranty & Service Tool
+
+> Dealership-grade warranty toolkit for Ford South Africa: SLT lookup, parts coverage, overlap validation, CCC reference, and BSI claim processing — all running client-side in the browser.
+
+## Pages
+
+- [Dashboard](/): Module overview and current vehicle context.
+- [SLT Lookup](/slt): Search standard labour times by section, operation, or part number.
+- [Bulk SLT Import](/slt/import): Import SLT rows from pasted text, screenshots, PDF or HTML PTS exports.
+- [Parts Coverage](/parts): Check Ford Protect plan coverage across part numbers.
+- [Factory Warranty](/factory-warranty): Reference for the 4-year / 120 000 km factory warranty rules.
+- [Overlap Checker](/overlaps): Validate combinations of operation codes for claim conflicts.
+- [Scheduled Maintenance](/maintenance): MBASIC service operations and fluid change intervals.
+- [CCC Codes](/ccc): Searchable Customer Concern Codes reference.
+- [Claim Processor](/cor): Generate COR, AWA and OWS files from BSI claim documents.
+- [Claim Library](/claim-library): Saved claims with extracted CCC, concern, labor ops and parts.
+- [Warranty Consultant](/consultant): AI assistant that interprets claims and updates SLT, CCC and parts data.
+- [Weekly Report](/report): Reconcile DMS data against SBI invoices and produce the weekly warranty report.

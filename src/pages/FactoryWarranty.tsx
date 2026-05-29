@@ -1,3 +1,4 @@
+import { PageMeta } from "@/components/PageMeta";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,6 +31,11 @@ export default function FactoryWarranty() {
 
   return (
     <div className="space-y-4">
+      <PageMeta
+        title="Ford Factory Warranty Reference — 4yr / 120 000 km"
+        description="Reference for the Ford South Africa factory warranty: 4-year / 120 000 km cover, component schedules, and exclusions."
+        path="/factory-warranty"
+      />
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <ShieldCheck className="h-6 w-6 text-primary" />

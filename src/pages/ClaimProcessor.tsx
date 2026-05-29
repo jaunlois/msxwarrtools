@@ -1,3 +1,4 @@
+import { PageMeta } from "@/components/PageMeta";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -315,6 +316,11 @@ export default function ClaimProcessor() {
 
   return (
     <div className="space-y-4 max-w-6xl">
+      <PageMeta
+        title="Claim Processor — Generate COR, AWA & OWS Files"
+        description="Upload Ford BSI claim documents to auto-extract data and generate COR, AWA and OWS files per warranty repair line."
+        path="/cor"
+      />
       {/* Header with Quick Links */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">

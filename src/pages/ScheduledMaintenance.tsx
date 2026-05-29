@@ -1,3 +1,4 @@
+import { PageMeta } from "@/components/PageMeta";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +14,11 @@ export default function ScheduledMaintenance() {
 
   return (
     <div className="space-y-4">
+      <PageMeta
+        title="Scheduled Maintenance — MBASIC Intervals"
+        description="MBASIC service operations and fluid change intervals for Ford drivetrains, including engine oil, brake fluid, and coolant schedules."
+        path="/maintenance"
+      />
       <div>
         <h1 className="text-2xl font-bold">Scheduled Maintenance</h1>
         <p className="text-sm text-muted-foreground">

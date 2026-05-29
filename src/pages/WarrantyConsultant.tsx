@@ -1,3 +1,4 @@
+import { PageMeta } from "@/components/PageMeta";
 import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,11 @@ export default function WarrantyConsultant() {
 
   return (
     <div className="container mx-auto p-4 space-y-4 max-w-5xl">
+      <PageMeta
+        title="Warranty Consultant — AI Claim Assistant"
+        description="Chat-based AI consultant that interprets Ford warranty claims, checks coverage, and updates local SLT, CCC and parts data on confirmation."
+        path="/consultant"
+      />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <div>

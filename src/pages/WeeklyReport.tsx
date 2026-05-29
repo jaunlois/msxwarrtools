@@ -1,3 +1,4 @@
+import { PageMeta } from "@/components/PageMeta";
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -340,6 +341,11 @@ export default function WeeklyReport() {
   // Upload step
   return (
     <div className="space-y-4">
+      <PageMeta
+        title="Weekly Warranty Report — Reconcile DMS vs SBI"
+        description="Upload Age Analysis, SBI invoices and WIP files to reconcile DMS data with SBI and produce the weekly warranty report."
+        path="/report"
+      />
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <BarChart3 className="h-6 w-6 text-primary" />

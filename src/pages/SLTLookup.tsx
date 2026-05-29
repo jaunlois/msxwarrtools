@@ -10,6 +10,7 @@ import { ChevronDown, Search, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { type SLTOperation, type SLTSection } from "@/data/slt-data";
 import { getMergedSltSections } from "@/lib/slt/mergedSltData";
+import { PageMeta } from "@/components/PageMeta";
 
 export default function SLTLookup() {
   const [search, setSearch] = useState("");
@@ -53,6 +54,11 @@ export default function SLTLookup() {
 
   return (
     <div className="space-y-4">
+      <PageMeta
+        title="SLT Lookup — Standard Labour Times"
+        description="Search Ford standard labour times by section, operation code, or part number for the 2022 U704A Everest and other models."
+        path="/slt"
+      />
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Standard Labour Time Lookup</h1>

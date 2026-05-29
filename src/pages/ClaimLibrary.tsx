@@ -1,3 +1,4 @@
+import { PageMeta } from "@/components/PageMeta";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -120,6 +121,11 @@ export default function ClaimLibrary() {
 
   return (
     <div className="space-y-4 max-w-6xl">
+      <PageMeta
+        title="Claim Library — Saved Warranty Claims"
+        description="Browse and edit saved warranty claims with extracted CCC, concern, labor operations and parts ready for re-use."
+        path="/claim-library"
+      />
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Brain className="h-6 w-6 text-primary" />

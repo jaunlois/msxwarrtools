@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { PageMeta } from "@/components/PageMeta";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -41,6 +42,11 @@ export default function PartsCoverage() {
 
   return (
     <div className="space-y-4">
+      <PageMeta
+        title="Ford Protect Parts Coverage Lookup"
+        description="Check Ford Protect warranty coverage for any part number across Base, Extra, Premium Maintenance, and Premium Care plans."
+        path="/parts"
+      />
       <div>
         <h1 className="text-2xl font-bold">Ford Protect Parts Coverage</h1>
         <p className="text-sm text-muted-foreground">
