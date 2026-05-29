@@ -315,7 +315,7 @@ export default function SLTImport() {
                       <Input type="number" step="0.1" value={r.time} onChange={(e) => updateRow(i, { time: parseFloat(e.target.value) || 0 })} className="h-8 text-xs text-right font-mono" />
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeRow(i)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Remove row" onClick={() => removeRow(i)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TableCell>
@@ -390,6 +390,7 @@ export default function SLTImport() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
+                        aria-label={`Delete saved entry ${e.opCode}`}
                         onClick={() => {
                           deleteCustomEntry(e.id);
                           setSaved(getCustomEntries());
