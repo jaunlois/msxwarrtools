@@ -199,7 +199,7 @@ export async function generateAWA(data: AWAFormData, claimNumber: string, return
   row += 4;
 
   // Note
-  s(ws.getCell(`B${row}`), "Please note: Attach all relevant documentation to the mail (copy of service book, proof of diagnosis, etc...)", { size: 7, bold: true });
+  s(ws.getCell(`B${row}`), "Please note: Attach all relevant documentation to this document in the designated Tabs below.", { size: 7, bold: true });
   row += 2;
 
   // Agreed Assistance section
