@@ -22,6 +22,7 @@ import { matchMultipleSLTCodes, suggestCCCCodes, suggestSLTFromDescription } fro
 import { generateCOR, type CORExportData } from "@/lib/claim-processor/generateCOR";
 import { generateAWA, type AWAFormData } from "@/lib/claim-processor/generateAWA";
 import { generateOWSClaim } from "@/lib/claim-processor/generateOWS";
+import { analyzeCoverage } from "@/lib/claim-processor/coverage";
 import {
   normalizeBsiNumber,
   type WarrantyRepairLine,
@@ -233,6 +234,16 @@ export default function ClaimProcessor() {
     const serviceHistory = warrantyHistory?.entries
       .filter(e => e.trxCode === "8159S" || e.customerComments.toLowerCase().includes("service"))
       .map(e => ({ date: e.repairDate, mileage: e.distance, service: e.customerComments })) || [];
+    const coverage = analyzeCoverage(vehicle, oasisData, [line]);
+    const lineCov = coverage.lines[0];
+    // Only push uncovered parts to the AWA QUOTE tab
+    const uncoveredParts = (lineCov?.parts || [])
+      .filter((p) => p.covered === "none")
+      .map((p) => ({ code: p.part.code, description: p.part.description, qty: p.part.qty, unitPrice: p.part.unitPrice }));
+    const labourCovered = lineCov?.labour !== "none";
+    const quoteLabour = labourCovered
+      ? []
+      : [{ opCode: line.opCode, description: line.operationDescription, hours: line.labourHours, rate: labourRate }];
     return {
       dealershipName: dealer.name, branch: dealer.branch, dealerCode: dealer.code,
       todaysDate: new Date().toISOString().split("T")[0], phone: dealer.phone, email: dealer.email,
@@ -241,8 +252,14 @@ export default function ClaimProcessor() {
       roNumber, roDate: new Date().toISOString().split("T")[0], fleetCode: "", fleetName: "",
       warrantyStartDate: vehicle.warrantyStartDate, currentKilometers: vehicle.kilometers,
       customerPhone: vehicle.phone, complaint: comments.complaint || line.operationDescription,
-      justification: `Kindly assist with AWA for ${line.operationDescription.toLowerCase()} if possible.`,
-      loyaltyAnswers: [true, false, true, true, true, false], ifYesPreviousAWA: "", serviceHistory,
+      justification:
+        coverage.awaJustification ||
+        `Kindly assist with AWA for ${line.operationDescription.toLowerCase()} if possible.`,
+      loyaltyAnswers: [true, !!coverage.espStatus.active, true, true, true, false],
+      ifYesPreviousAWA: "",
+      serviceHistory,
+      quoteParts: uncoveredParts.length > 0 ? uncoveredParts : line.parts.map((p) => ({ code: p.code, description: p.description, qty: p.qty, unitPrice: p.unitPrice })),
+      quoteLabour: quoteLabour.length > 0 ? quoteLabour : [{ opCode: line.opCode, description: line.operationDescription, hours: line.labourHours, rate: labourRate }],
     };
   };
 
@@ -310,6 +327,16 @@ export default function ClaimProcessor() {
   const currentWarnings = warrantyHistory && warrantyLines.length > 0
     ? checkRepeatRepairs(warrantyLines, warrantyHistory)
     : repeatWarnings;
+
+  // Coverage analysis (factory + ESP)
+  const coverageReport = warrantyLines.length > 0
+    ? analyzeCoverage(vehicle, oasisData, warrantyLines)
+    : null;
+  const coverageVerdictColor = (v: string) =>
+    v === "factory" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
+    : v === "esp" ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40"
+    : v === "partial" ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40"
+    : "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40";
 
   const parsedCount = uploadedFiles.filter(f => f.parsed).length;
   const hasData = bsiNumber || vehicle.vin || warrantyLines.length > 0;
@@ -579,6 +606,57 @@ export default function ClaimProcessor() {
                 </Card>
               )}
             </div>
+          )}
+
+          {/* Coverage Analysis */}
+          {coverageReport && (
+            <Card className={`border ${coverageVerdictColor(coverageReport.overall)}`}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> Warranty Coverage Analysis
+                  <Badge variant="outline" className={`ml-1 text-[10px] ${coverageVerdictColor(coverageReport.overall)}`}>
+                    {coverageReport.overall.toUpperCase()}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-xs">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className={coverageReport.factoryStatus.inWarranty ? "border-emerald-500/50" : "border-rose-500/50"}>
+                    Factory: {coverageReport.factoryStatus.inWarranty ? "In warranty" : "Out of warranty"}
+                    {coverageReport.factoryStatus.ageYears !== null && ` · ${coverageReport.factoryStatus.ageYears.toFixed(1)}y`}
+                    {coverageReport.factoryStatus.km !== null && ` · ${coverageReport.factoryStatus.km.toLocaleString()} km`}
+                  </Badge>
+                  <Badge variant="outline" className={coverageReport.espStatus.active ? "border-sky-500/50" : "border-muted"}>
+                    ESP: {coverageReport.espStatus.plan
+                      ? `${coverageReport.espStatus.plan} ${coverageReport.espStatus.active ? "active" : (coverageReport.espStatus.rawStatus || "inactive")}`
+                      : "None on file"}
+                    {coverageReport.espStatus.expiry && ` · exp ${coverageReport.espStatus.expiry}`}
+                  </Badge>
+                </div>
+                <p className="font-medium">{coverageReport.recommendation}</p>
+                <div className="space-y-1">
+                  {coverageReport.lines.map((lc) => (
+                    <div key={lc.line.itemNumber} className="border-l-2 pl-2 border-muted">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={`text-[10px] ${coverageVerdictColor(lc.verdict)}`}>
+                          Line {lc.line.itemNumber}: {lc.verdict}
+                        </Badge>
+                        <span className="text-muted-foreground truncate">{lc.line.operationDescription}</span>
+                      </div>
+                      {lc.parts.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {lc.parts.map((p, i) => (
+                            <Badge key={i} variant="outline" className={`text-[9px] font-mono ${coverageVerdictColor(p.covered)}`}>
+                              {p.part.code} — {p.covered === "esp" ? `ESP ${p.plan}` : p.covered === "factory" ? "Factory" : "Not covered"}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Paste extra parts / additional repair lines */}

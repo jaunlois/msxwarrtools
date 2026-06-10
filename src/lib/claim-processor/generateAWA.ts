@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import type { ClaimVehicleInfo, ClaimPartLine, ClaimLabourLine } from "./types";
+import type { ClaimPartLine } from "./types";
 
 export interface AWAFormData {
   dealershipName: string;
@@ -27,6 +27,9 @@ export interface AWAFormData {
   loyaltyAnswers: boolean[];
   ifYesPreviousAWA: string;
   serviceHistory: { date: string; mileage: string; service: string }[];
+  /** Optional quote breakdown — auto-fills the QUOTE tab when present. */
+  quoteParts?: { code: string; description: string; qty: number; unitPrice: number }[];
+  quoteLabour?: { opCode: string; description: string; hours: number; rate: number }[];
 }
 
 function s(cell: ExcelJS.Cell, value: any, opts?: { bold?: boolean; size?: number; color?: string; align?: "left" | "center" | "right" }) {
@@ -39,8 +42,8 @@ export async function generateAWA(data: AWAFormData, claimNumber: string, return
   const wb = new ExcelJS.Workbook();
   wb.creator = "Ford Service Tool - AWA Generator";
 
-  // ===== Sheet 1: AWA Form =====
-  const ws = wb.addWorksheet("AWA Request", {
+  // ===== Sheet 1: AWA (CLP) Request =====
+  const ws = wb.addWorksheet("AWA (CLP) Request", {
     pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
   });
 
@@ -56,13 +59,17 @@ export async function generateAWA(data: AWAFormData, claimNumber: string, return
 
   // Ford header
   ws.mergeCells("C3:G3");
-  s(ws.getCell("C3"), "Ford International Business Development Inc.\nFord Motor Company of Southern Africa\nRegion Customer Service Operations", { size: 8 });
+  s(
+    ws.getCell("C3"),
+    "Ford Motor Company of Southern Africa, International Markets Group (IMG).\nCustomer Resolution Centre (CRC)",
+    { size: 8 },
+  );
   ws.getRow(3).height = 40;
   s(ws.getCell("H3"), `Phone: ${data.phone}\nE-Mail: ${data.email}`, { size: 8 });
 
   // To
   s(ws.getCell("B5"), "To:", { bold: true });
-  s(ws.getCell("C5"), "Ben Bezuidenhout");
+  s(ws.getCell("C5"), "B. Bezuidenhout");
 
   // Dealer info
   s(ws.getCell("B7"), "Dealership Name:", { bold: true });
@@ -192,7 +199,7 @@ export async function generateAWA(data: AWAFormData, claimNumber: string, return
   row += 4;
 
   // Note
-  s(ws.getCell(`B${row}`), "Please note: Attach all relevant documentation to the mail (copy of service book, proof of diagnosis, etc...)", { size: 7, bold: true });
+  s(ws.getCell(`B${row}`), "Please note: Attach all relevant documentation to this document in the designated Tabs below.", { size: 7, bold: true });
   row += 2;
 
   // Agreed Assistance section
@@ -204,24 +211,33 @@ export async function generateAWA(data: AWAFormData, claimNumber: string, return
   headers.forEach((h, i) => s(ws.getCell(row, i + 1), h, { bold: true, size: 8 }));
   row++;
 
-  const assistRows = ["Actual % / Cost", "Customer Participation:", "Dealer Participation:", "Ford Participation:"];
-  assistRows.forEach(label => {
-    s(ws.getCell(`B${row}`), label, { bold: true, size: 8 });
-    s(ws.getCell(`C${row}`), "0%");
-    s(ws.getCell(`D${row}`), "0%");
-    s(ws.getCell(`E${row}`), "R-");
-    s(ws.getCell(`F${row}`), "R-");
-    if (label === "Actual % / Cost") {
+  // Defaults: Actual 100/100, Customer 20/20, Dealer 0/0, Ford 80/80
+  const assistRows: { label: string; partsPct: number; labourPct: number }[] = [
+    { label: "Actual % / Cost", partsPct: 100, labourPct: 100 },
+    { label: "Customer Participation:", partsPct: 20, labourPct: 20 },
+    { label: "Dealer Participation:", partsPct: 0, labourPct: 0 },
+    { label: "Ford Participation:", partsPct: 80, labourPct: 80 },
+  ];
+  const partsTotal = (data.quoteParts || []).reduce((s2, p) => s2 + p.qty * p.unitPrice, 0);
+  const labourTotal = (data.quoteLabour || []).reduce((s2, l) => s2 + l.hours * l.rate, 0);
+  assistRows.forEach((r) => {
+    s(ws.getCell(`B${row}`), r.label, { bold: true, size: 8 });
+    s(ws.getCell(`C${row}`), `${r.partsPct}%`);
+    s(ws.getCell(`D${row}`), `${r.labourPct}%`);
+    s(ws.getCell(`E${row}`), partsTotal ? `R${((partsTotal * r.partsPct) / 100).toFixed(2)}` : "R-");
+    s(ws.getCell(`F${row}`), labourTotal ? `R${((labourTotal * r.labourPct) / 100).toFixed(2)}` : "R-");
+    if (r.label === "Actual % / Cost") {
       s(ws.getCell(`H${row}`), "Total Ford Warranty Labour Contribution R:", { size: 7 });
-      s(ws.getCell(`K${row}`), "R0.00", { bold: true });
+      s(ws.getCell(`K${row}`), labourTotal ? `R${((labourTotal * 80) / 100).toFixed(2)}` : "R0.00", { bold: true });
     }
-    if (label === "Customer Participation:") {
+    if (r.label === "Customer Participation:") {
       s(ws.getCell(`H${row}`), "Total Ford Warranty Parts Contribution", { size: 7 });
-      s(ws.getCell(`K${row}`), "R0.00", { bold: true });
+      s(ws.getCell(`K${row}`), partsTotal ? `R${((partsTotal * 80) / 100).toFixed(2)}` : "R0.00", { bold: true });
     }
-    if (label === "Dealer Participation:") {
+    if (r.label === "Dealer Participation:") {
       s(ws.getCell(`H${row}`), "TOTAL FORD CONTRIBUTION", { size: 7, bold: true });
-      s(ws.getCell(`K${row}`), "R0.00", { bold: true });
+      const total = ((partsTotal + labourTotal) * 80) / 100;
+      s(ws.getCell(`K${row}`), total ? `R${total.toFixed(2)}` : "R0.00", { bold: true });
     }
     row++;
   });
@@ -232,12 +248,21 @@ export async function generateAWA(data: AWAFormData, claimNumber: string, return
   s(ws.getCell(`B${row}`), "25% Customer, 25% Dealer and 50% Ford contribution.", { size: 7, bold: true });
   row += 2;
   s(ws.getCell(`I${row}`), "Approved by:", { bold: true });
+  s(ws.getCell(`J${row}`), "B. Bezuidenhout");
   row++;
   s(ws.getCell(`I${row}`), "Signed:", { bold: true });
   row++;
   s(ws.getCell(`I${row}`), "Date:", { bold: true });
 
-  // ===== Sheet 2: Service History =====
+  // ===== Sheet 2: Diagnostics, Photos, Videos (placeholder) =====
+  const wsDiag = wb.addWorksheet("Diagnostics, Photos, Videos", {
+    pageSetup: { paperSize: 9, orientation: "portrait" },
+  });
+  wsDiag.columns = [{ width: 80 }];
+  s(wsDiag.getCell("A1"), "Diagnostics, Photos, Videos", { bold: true, size: 12, color: "FF003478" });
+  s(wsDiag.getCell("A3"), "Paste or insert diagnostic reports, photos and videos supporting this AWA request.", { size: 9 });
+
+  // ===== Sheet 3: Service History =====
   const ws2 = wb.addWorksheet("Service History", {
     pageSetup: { paperSize: 9, orientation: "portrait" },
   });
@@ -252,14 +277,102 @@ export async function generateAWA(data: AWAFormData, claimNumber: string, return
     ws2.getCell(`C${i + 2}`).value = sh.service;
   });
 
-  // ===== Sheet 3: CLP Exclusions =====
-  const ws3 = wb.addWorksheet("CLP Exclusions", {
+  // ===== Sheet 4: Other Supporting Documents (placeholder) =====
+  const wsOther = wb.addWorksheet("Other Supporting Documents", {
+    pageSetup: { paperSize: 9, orientation: "portrait" },
+  });
+  wsOther.columns = [{ width: 80 }];
+  s(wsOther.getCell("A1"), "Other Supporting Documents", { bold: true, size: 12, color: "FF003478" });
+  s(wsOther.getCell("A3"), "Attach any additional documents (correspondence, prior repair records, etc.) on this tab.", { size: 9 });
+
+  // ===== Sheet 5: QUOTE (auto-filled from claim) =====
+  const wsQuote = wb.addWorksheet("QUOTE", {
+    pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+  });
+  wsQuote.columns = [
+    { width: 16 }, { width: 40 }, { width: 8 }, { width: 14 }, { width: 14 },
+  ];
+  s(wsQuote.getCell("A1"), "Quotation (auto-filled from claim)", { bold: true, size: 12, color: "FF003478" });
+  wsQuote.mergeCells("A1:E1");
+  s(wsQuote.getCell("A2"), `RO: ${data.roNumber}  |  VIN: ${data.vin}  |  Customer: ${data.customerName}`, { size: 8 });
+  wsQuote.mergeCells("A2:E2");
+
+  // Parts table
+  let qr = 4;
+  s(wsQuote.getCell(`A${qr}`), "PARTS", { bold: true, size: 10, color: "FF003478" });
+  qr++;
+  ["Part No", "Description", "Qty", "Unit Price", "Line Total"].forEach((h, i) =>
+    s(wsQuote.getCell(qr, i + 1), h, { bold: true, size: 9 }),
+  );
+  qr++;
+  const partsFirst = qr;
+  const parts = data.quoteParts || [];
+  parts.forEach((p) => {
+    wsQuote.getCell(`A${qr}`).value = p.code;
+    wsQuote.getCell(`B${qr}`).value = p.description;
+    wsQuote.getCell(`C${qr}`).value = p.qty;
+    wsQuote.getCell(`D${qr}`).value = p.unitPrice;
+    wsQuote.getCell(`D${qr}`).numFmt = '"R"#,##0.00';
+    wsQuote.getCell(`E${qr}`).value = { formula: `C${qr}*D${qr}` } as any;
+    wsQuote.getCell(`E${qr}`).numFmt = '"R"#,##0.00';
+    qr++;
+  });
+  const partsLast = qr - 1;
+  s(wsQuote.getCell(`D${qr}`), "Parts Subtotal", { bold: true, size: 9 });
+  if (parts.length > 0) {
+    wsQuote.getCell(`E${qr}`).value = { formula: `SUM(E${partsFirst}:E${partsLast})` } as any;
+  } else {
+    wsQuote.getCell(`E${qr}`).value = 0;
+  }
+  wsQuote.getCell(`E${qr}`).numFmt = '"R"#,##0.00';
+  wsQuote.getCell(`E${qr}`).font = { name: "Arial", size: 9, bold: true };
+  const partsSubtotalRow = qr;
+  qr += 2;
+
+  // Labour table
+  s(wsQuote.getCell(`A${qr}`), "LABOUR", { bold: true, size: 10, color: "FF003478" });
+  qr++;
+  ["Op Code", "Description", "Hours", "Rate", "Line Total"].forEach((h, i) =>
+    s(wsQuote.getCell(qr, i + 1), h, { bold: true, size: 9 }),
+  );
+  qr++;
+  const labFirst = qr;
+  const labour = data.quoteLabour || [];
+  labour.forEach((l) => {
+    wsQuote.getCell(`A${qr}`).value = l.opCode;
+    wsQuote.getCell(`B${qr}`).value = l.description;
+    wsQuote.getCell(`C${qr}`).value = l.hours;
+    wsQuote.getCell(`D${qr}`).value = l.rate;
+    wsQuote.getCell(`D${qr}`).numFmt = '"R"#,##0.00';
+    wsQuote.getCell(`E${qr}`).value = { formula: `C${qr}*D${qr}` } as any;
+    wsQuote.getCell(`E${qr}`).numFmt = '"R"#,##0.00';
+    qr++;
+  });
+  const labLast = qr - 1;
+  s(wsQuote.getCell(`D${qr}`), "Labour Subtotal", { bold: true, size: 9 });
+  if (labour.length > 0) {
+    wsQuote.getCell(`E${qr}`).value = { formula: `SUM(E${labFirst}:E${labLast})` } as any;
+  } else {
+    wsQuote.getCell(`E${qr}`).value = 0;
+  }
+  wsQuote.getCell(`E${qr}`).numFmt = '"R"#,##0.00';
+  wsQuote.getCell(`E${qr}`).font = { name: "Arial", size: 9, bold: true };
+  const labSubtotalRow = qr;
+  qr += 2;
+
+  s(wsQuote.getCell(`D${qr}`), "GRAND TOTAL", { bold: true, size: 10, color: "FF003478" });
+  wsQuote.getCell(`E${qr}`).value = { formula: `E${partsSubtotalRow}+E${labSubtotalRow}` } as any;
+  wsQuote.getCell(`E${qr}`).numFmt = '"R"#,##0.00';
+  wsQuote.getCell(`E${qr}`).font = { name: "Arial", size: 10, bold: true, color: { argb: "FF003478" } };
+
+  // ===== Sheet 6: AWA Exclusions =====
+  const ws3 = wb.addWorksheet("AWA Exclusions", {
     pageSetup: { paperSize: 9, orientation: "portrait" },
   });
   ws3.columns = [{ width: 5 }, { width: 80 }];
-  s(ws3.getCell("A1"), "CLP Exclusion List", { bold: true, size: 11, color: "FF003478" });
+  s(ws3.getCell("A1"), "AWA Exclusion List", { bold: true, size: 11, color: "FF003478" });
   ws3.mergeCells("A1:B1");
-  s(ws3.getCell("A2"), "(Do not qualify for CLP assistance if the claim falls into any of the exclusions listed below)", { size: 8 });
+  s(ws3.getCell("A2"), "(Do not qualify for AWA assistance if the claim falls into any of the exclusions listed below)", { size: 8 });
   ws3.mergeCells("A2:B2");
 
   const exclusions = [
