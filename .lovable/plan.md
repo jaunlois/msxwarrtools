@@ -1,42 +1,81 @@
-# Enhance Bulk SLT Import
+# AWA + Warranty Coverage Intelligence
 
-The current parser (`src/lib/slt/parseSltText.ts`) only handles one op-code per line and discards the parent operation description. PTS exports look like:
+Combine the new Ford SA AWA template (uploaded `AWA request form.xlsx`) with a coverage analyzer so the Claim Processor only recommends an AWA when no warranty pays the repair. The OASIS PDF in the example shows the 2021 Ranger Raptor is out of factory bumper-to-bumper but has **Ford Premium Care ESP** active, so the fuel-system parts in the quote should route to ESP — not AWA.
 
+## 1. Coverage analyzer — new `src/lib/claim-processor/coverage.ts`
+
+Pure function: `analyzeCoverage(claim: ClaimData): CoverageReport`.
+
+Inputs already in `ClaimData`: `vehicle.warrantyStartDate`, `vehicle.kilometers`, `oasisData.espInfo`, `oasisData.warrantyCoverageMessages`, `warrantyLines`, plus `partsCoverageData` (existing Parts Coverage dataset).
+
+Output:
+```ts
+type CoverageVerdict = "factory" | "esp" | "partial" | "awa" | "none";
+interface LineCoverage {
+  line: WarrantyRepairLine;
+  parts: { part: ClaimPartLine; covered: "factory"|"esp"|"none"; planMatch?: string }[];
+  labour: "factory"|"esp"|"none";
+  verdict: CoverageVerdict;
+  reason: string;
+}
+interface CoverageReport {
+  factoryStatus: { inWarranty: boolean; ageYears: number; km: number; cap: { years: 4, km: 120000 } };
+  espStatus: { active: boolean; plan?: string; expiry?: string; kmCap?: number };
+  lines: LineCoverage[];
+  overall: CoverageVerdict;
+  recommendation: string;   // human summary for UI + AWA justification
+  awaJustification: string; // prefilled "Vehicle out of factory warranty (X yrs / Y km). ESP Premium Care active until ... but parts not covered. Goodwill requested to retain loyalty."
+}
 ```
-Weatherstrip - Front Door Glass Inside (21456/ 21457) - Replace
-Double Cab,Single Cab....ONE 21456A 0.3 Double Cab,Single Cab....BOTH 21456AT 0.6
-```
 
-…where the header line carries the real description, and the next line packs **multiple** `qualifier + opCode + time` triples on a single line. The same shape comes out of the PTS HTML/PDF/MHTML exports (one table-row per qualifier, but they collapse into one text line on copy/PDF-extract).
+Rules:
+- Factory: in-warranty if `ageYears ≤ 4` AND `km ≤ 120000` (memory rule).
+- ESP: active if `espInfo.status` matches `ACTIVE|CURRENT` (not `EXPIRED`) and current km ≤ ESP distance cap.
+- Per part: match part-number prefix against `partsCoverageData` rows tagged for the active ESP plan (Premium Care covers powertrain + fuel system + many electronics — reuse existing Parts Coverage lookup).
+- Verdict: all parts factory → `factory`; all ESP → `esp`; mix → `partial`; none → `awa`.
 
-## Changes
+## 2. Update AWA generator — `src/lib/claim-processor/generateAWA.ts`
 
-### 1. Rewrite `src/lib/slt/parseSltText.ts`
-- Walk lines top-to-bottom, tracking the most recent **operation header** (a line that has no op-code/time and ends in something like `- Replace`, `- R&I`, `- Adjust`, etc., or contains `(NNNN/ NNNN)` part-code groups).
-- For each non-header line, repeatedly match the pattern `((qualifier text)?\s+OPCODE\s+TIME)` across the whole line — produces one `ParsedSltRow` per match.
-- Description = `"{parent header} — {qualifier}"` (qualifier cleaned of leading dots/whitespace, e.g. `Double Cab,Single Cab · ONE`). Fallback to parent header only when no qualifier text is present (e.g. single-variant ops like `Tyre- Replace - Two   1007ABA  0.9`).
-- Also handle the simple single-line case still in use (`opcode<TAB>desc<TAB>time`) so existing pastes keep working.
-- Keep `inferSection` but also accept a section banner line like `Section: Wheels, Bearings And Hubs (0000 - 1999)` to set the default section for subsequent rows.
+Match the uploaded template exactly:
+- Worksheet 1 rename: `AWA Request` → `AWA (CLP) Request`.
+- Header text → `Ford Motor Company of Southern Africa, International Markets Group (IMG). Customer Resolution Centre (CRC)`.
+- Attachments note → `Attach all relevant documentation to this document in the designated Tabs below`.
+- Approved-by pre-fill `B. Bezuidenhout`.
+- Default assistance split: Actual 100/100, Customer 20/20, Dealer 0/0, Ford 80/80; Rands columns driven by Excel formulas off `partsTotal` / `labourTotal` so the user can tweak %.
 
-### 2. Add PDF / HTML / MHTML upload tab
-New file `src/lib/slt/extractSltDocument.ts`:
-- `.pdf` → use existing `pdfjs-dist` (mirror `src/lib/report/parsePDF.ts` setup) to pull text per page, join with newlines, feed to `parseSltText`.
-- `.html` / `.mhtml` → read as text, decode quoted-printable if MHTML, strip tags with `DOMParser`, preserve row breaks by inserting `\n` before block elements, feed to `parseSltText`.
+New tabs in this order: `AWA (CLP) Request`, `Diagnostics, Photos, Videos` (blank placeholder), `Service History` (existing), `Other Supporting Documents` (blank placeholder), `QUOTE` (auto-filled), `AWA Exclusions` (renamed from `CLP Exclusions`).
 
-Update `src/pages/SLTImport.tsx`:
-- Add a third tab "Upload PDF / HTML" alongside Paste Text and Paste Screenshot.
-- Accept `.pdf,.html,.htm,.mhtml` via file input + drag/drop. Show a small spinner while parsing, then drop results into the same review table.
+**QUOTE tab** is populated from `claim.warrantyLines` (only lines whose `coverage.verdict === "awa"` or `"partial"` — covered lines go to the ESP/Warranty path, not AWA):
+- Parts table: Part No | Description | Qty | Unit Price | Line Total `=D*E`; subtotal `=SUM(...)`.
+- Labour table: Op Code | Description | Hours | Rate | Line Total `=D*E`; subtotal.
+- Grand total = parts + labour. Currency format `"R"#,##0.00`.
 
-### 3. Review table tweak
-- Show a `notes` column / tooltip when the qualifier is preserved separately so the user can spot multi-variant groupings (optional — falls out naturally if we store qualifier in description).
+Justification cell auto-fills `coverage.awaJustification` when blank.
+
+## 3. Claim Processor UI — `src/pages/ClaimProcessor.tsx`
+
+Add a "Coverage Analysis" card above the existing AWA button, rendered after a quote + OASIS are loaded:
+- Factory status badge (In warranty / Out of warranty + age/km).
+- ESP status badge (Active Premium Care until {date} / Expired / None).
+- Per-line list with colored chip: Factory / ESP / Not covered.
+- Recommendation banner: one of
+  - "Submit as factory warranty claim — no AWA needed" (disable AWA button)
+  - "Submit as ESP claim — covered by Premium Care" (disable AWA button, show "Generate ESP claim" hint)
+  - "Partial coverage — file ESP for covered parts, AWA for the rest"
+  - "No coverage — AWA goodwill request justified"
+
+AWA dialog: pre-fill `complaint` from back-page concern (already done) and `justification` from `coverage.awaJustification`. Pass only uncovered lines into `generateAWA`.
+
+## 4. Coverage memory
+
+Append to project core memory: "AWA only when no factory + no ESP coverage; ESP Premium Care covers powertrain/fuel system — route to ESP first."
 
 ## Out of scope
-- No changes to the saved-entry storage format (`CustomSltEntry`) — same shape, just better-populated `description`.
-- No backend/Cloud changes.
+- No new UI route, no Cloud/backend changes, no changes to OWS/COR generators.
+- Photo/Diagnostic embedding stays manual (blank tab).
+- ESP plan-to-parts mapping uses the existing Parts Coverage dataset; no new dataset import.
 
-## Technical notes
-- Regex sketch for variant extraction:
-  `/([A-Za-z0-9 ,/&().-]*?)\s*([A-Z]{0,2}\d{3,4}[A-Z]{0,4}\d{0,2})\s+(\d{1,2}\.\d)/g`
-  Run with `matchAll`, trim leading `.`/whitespace from group 1.
-- Header detection: line has no op-code match AND (ends with `- Replace|R&I|R & I|Adjust|Inspect|Check|Bleed|Align|Service|Test|Clean|Diagnose` OR contains `(\d{3,5}[/ ]`).
-- MHTML quoted-printable decode: simple `replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_,h)=>String.fromCharCode(parseInt(h,16)))`.
+## Files touched
+- new: `src/lib/claim-processor/coverage.ts`
+- edit: `src/lib/claim-processor/generateAWA.ts`, `src/lib/claim-processor/types.ts` (add `CoverageReport` re-export), `src/pages/ClaimProcessor.tsx`
+- memory: `mem://index.md` core line
