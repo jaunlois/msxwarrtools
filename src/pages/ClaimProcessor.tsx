@@ -328,6 +328,16 @@ export default function ClaimProcessor() {
     ? checkRepeatRepairs(warrantyLines, warrantyHistory)
     : repeatWarnings;
 
+  // Coverage analysis (factory + ESP)
+  const coverageReport = warrantyLines.length > 0
+    ? analyzeCoverage(vehicle, oasisData, warrantyLines)
+    : null;
+  const coverageVerdictColor = (v: string) =>
+    v === "factory" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
+    : v === "esp" ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40"
+    : v === "partial" ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40"
+    : "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40";
+
   const parsedCount = uploadedFiles.filter(f => f.parsed).length;
   const hasData = bsiNumber || vehicle.vin || warrantyLines.length > 0;
 
