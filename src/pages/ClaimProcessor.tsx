@@ -608,6 +608,57 @@ export default function ClaimProcessor() {
             </div>
           )}
 
+          {/* Coverage Analysis */}
+          {coverageReport && (
+            <Card className={`border ${coverageVerdictColor(coverageReport.overall)}`}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> Warranty Coverage Analysis
+                  <Badge variant="outline" className={`ml-1 text-[10px] ${coverageVerdictColor(coverageReport.overall)}`}>
+                    {coverageReport.overall.toUpperCase()}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-xs">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className={coverageReport.factoryStatus.inWarranty ? "border-emerald-500/50" : "border-rose-500/50"}>
+                    Factory: {coverageReport.factoryStatus.inWarranty ? "In warranty" : "Out of warranty"}
+                    {coverageReport.factoryStatus.ageYears !== null && ` · ${coverageReport.factoryStatus.ageYears.toFixed(1)}y`}
+                    {coverageReport.factoryStatus.km !== null && ` · ${coverageReport.factoryStatus.km.toLocaleString()} km`}
+                  </Badge>
+                  <Badge variant="outline" className={coverageReport.espStatus.active ? "border-sky-500/50" : "border-muted"}>
+                    ESP: {coverageReport.espStatus.plan
+                      ? `${coverageReport.espStatus.plan} ${coverageReport.espStatus.active ? "active" : (coverageReport.espStatus.rawStatus || "inactive")}`
+                      : "None on file"}
+                    {coverageReport.espStatus.expiry && ` · exp ${coverageReport.espStatus.expiry}`}
+                  </Badge>
+                </div>
+                <p className="font-medium">{coverageReport.recommendation}</p>
+                <div className="space-y-1">
+                  {coverageReport.lines.map((lc) => (
+                    <div key={lc.line.itemNumber} className="border-l-2 pl-2 border-muted">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={`text-[10px] ${coverageVerdictColor(lc.verdict)}`}>
+                          Line {lc.line.itemNumber}: {lc.verdict}
+                        </Badge>
+                        <span className="text-muted-foreground truncate">{lc.line.operationDescription}</span>
+                      </div>
+                      {lc.parts.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {lc.parts.map((p, i) => (
+                            <Badge key={i} variant="outline" className={`text-[9px] font-mono ${coverageVerdictColor(p.covered)}`}>
+                              {p.part.code} — {p.covered === "esp" ? `ESP ${p.plan}` : p.covered === "factory" ? "Factory" : "Not covered"}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Paste extra parts / additional repair lines */}
           <PasteExtractor
             onRepairLinesExtracted={handlePasteRepairLines}
