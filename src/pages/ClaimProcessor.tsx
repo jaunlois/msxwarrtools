@@ -22,6 +22,7 @@ import { matchMultipleSLTCodes, suggestCCCCodes, suggestSLTFromDescription } fro
 import { generateCOR, type CORExportData } from "@/lib/claim-processor/generateCOR";
 import { generateAWA, type AWAFormData } from "@/lib/claim-processor/generateAWA";
 import { generateOWSClaim } from "@/lib/claim-processor/generateOWS";
+import { analyzeCoverage } from "@/lib/claim-processor/coverage";
 import {
   normalizeBsiNumber,
   type WarrantyRepairLine,
@@ -233,6 +234,16 @@ export default function ClaimProcessor() {
     const serviceHistory = warrantyHistory?.entries
       .filter(e => e.trxCode === "8159S" || e.customerComments.toLowerCase().includes("service"))
       .map(e => ({ date: e.repairDate, mileage: e.distance, service: e.customerComments })) || [];
+    const coverage = analyzeCoverage(vehicle, oasisData, [line]);
+    const lineCov = coverage.lines[0];
+    // Only push uncovered parts to the AWA QUOTE tab
+    const uncoveredParts = (lineCov?.parts || [])
+      .filter((p) => p.covered === "none")
+      .map((p) => ({ code: p.part.code, description: p.part.description, qty: p.part.qty, unitPrice: p.part.unitPrice }));
+    const labourCovered = lineCov?.labour !== "none";
+    const quoteLabour = labourCovered
+      ? []
+      : [{ opCode: line.opCode, description: line.operationDescription, hours: line.labourHours, rate: labourRate }];
     return {
       dealershipName: dealer.name, branch: dealer.branch, dealerCode: dealer.code,
       todaysDate: new Date().toISOString().split("T")[0], phone: dealer.phone, email: dealer.email,
@@ -241,8 +252,14 @@ export default function ClaimProcessor() {
       roNumber, roDate: new Date().toISOString().split("T")[0], fleetCode: "", fleetName: "",
       warrantyStartDate: vehicle.warrantyStartDate, currentKilometers: vehicle.kilometers,
       customerPhone: vehicle.phone, complaint: comments.complaint || line.operationDescription,
-      justification: `Kindly assist with AWA for ${line.operationDescription.toLowerCase()} if possible.`,
-      loyaltyAnswers: [true, false, true, true, true, false], ifYesPreviousAWA: "", serviceHistory,
+      justification:
+        coverage.awaJustification ||
+        `Kindly assist with AWA for ${line.operationDescription.toLowerCase()} if possible.`,
+      loyaltyAnswers: [true, !!coverage.espStatus.active, true, true, true, false],
+      ifYesPreviousAWA: "",
+      serviceHistory,
+      quoteParts: uncoveredParts.length > 0 ? uncoveredParts : line.parts.map((p) => ({ code: p.code, description: p.description, qty: p.qty, unitPrice: p.unitPrice })),
+      quoteLabour: quoteLabour.length > 0 ? quoteLabour : [{ opCode: line.opCode, description: line.operationDescription, hours: line.labourHours, rate: labourRate }],
     };
   };
 
