@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { FileSpreadsheet, FileText, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Check, Search } from "lucide-react";
+import { FileSpreadsheet, FileText, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Check, Search, Star } from "lucide-react";
 import type { WarrantyRepairLine, ClaimPartLine, SLTMatch, CCCMatch } from "@/lib/claim-processor/types";
 
 interface LineComments {
@@ -61,6 +61,10 @@ export function RepairLineCard({
   const updatePart = (idx: number, updates: Partial<ClaimPartLine>) => {
     const updated = line.parts.map((p, i) => i === idx ? { ...p, ...updates } : p);
     onUpdateParts(updated);
+  };
+
+  const setCausal = (idx: number) => {
+    onUpdateParts(line.parts.map((p, i) => ({ ...p, causal: i === idx })));
   };
 
   return (
@@ -191,7 +195,18 @@ export function RepairLineCard({
                       </>
                     ) : (
                       <>
-                        <span className="font-mono text-[10px]">{p.code}</span>
+                        <span className="font-mono text-[10px] flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setCausal(pi)}
+                            title={p.causal ? "Causal part" : "Mark as causal part"}
+                            aria-label={p.causal ? "Causal part" : "Mark as causal part"}
+                            className="shrink-0"
+                          >
+                            <Star className={`h-3 w-3 ${p.causal ? "fill-amber-400 text-amber-500" : "text-muted-foreground/40"}`} />
+                          </button>
+                          {p.code}
+                        </span>
                         <span className="text-[10px] truncate">{p.description}</span>
                         <span className="text-right text-[10px]">{p.qty}</span>
                         <span className="text-right font-mono text-[10px]">R {p.unitPrice.toFixed(2)}</span>
