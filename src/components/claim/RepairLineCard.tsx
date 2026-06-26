@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/collapsible";
 import { FileSpreadsheet, FileText, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Check, Search, Star } from "lucide-react";
 import type { WarrantyRepairLine, ClaimPartLine, SLTMatch, CCCMatch } from "@/lib/claim-processor/types";
+import { OWS_CLAIM_TYPES } from "@/lib/claim-processor/owsClaimTypes";
 
 interface LineComments {
   complaint: string;
@@ -154,7 +155,7 @@ export function RepairLineCard({
             )}
 
             {/* Editable Line Details */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <div>
                 <Label className="text-[10px] text-muted-foreground">Op Code</Label>
                 <Input value={line.opCode} onChange={e => onUpdateLine({ opCode: e.target.value })} className="h-7 text-xs font-mono" />
@@ -167,7 +168,28 @@ export function RepairLineCard({
                 <Label className="text-[10px] text-muted-foreground">Description</Label>
                 <Input value={line.operationDescription} onChange={e => onUpdateLine({ operationDescription: e.target.value })} className="h-7 text-xs" />
               </div>
+              <div>
+                <Label className="text-[10px] text-muted-foreground">OWS Claim Type</Label>
+                <select
+                  value={line.claimType || "11"}
+                  onChange={(e) => onUpdateLine({ claimType: e.target.value })}
+                  className="h-7 text-xs w-full rounded-md border border-input bg-background px-2"
+                  aria-label="OWS claim type"
+                >
+                  {OWS_CLAIM_TYPES.map((t) => (
+                    <option key={t.code} value={t.code}>{t.code} — {t.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+            {OWS_CLAIM_TYPES.find((t) => t.code === (line.claimType || "11"))?.requiresSubCode && (
+              <div>
+                <Label className="text-[10px] text-muted-foreground">
+                  {OWS_CLAIM_TYPES.find((t) => t.code === (line.claimType || "11"))?.subCodeLabel || "Sub-Code"}
+                </Label>
+                <Input value={line.subCode || ""} onChange={(e) => onUpdateLine({ subCode: e.target.value })} className="h-7 text-xs font-mono" />
+              </div>
+            )}
 
             {/* Parts Table */}
             <div>

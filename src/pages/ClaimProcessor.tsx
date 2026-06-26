@@ -23,6 +23,8 @@ import { generateCOR, type CORExportData } from "@/lib/claim-processor/generateC
 import { generateAWA, type AWAFormData } from "@/lib/claim-processor/generateAWA";
 import { generateOWSClaim } from "@/lib/claim-processor/generateOWS";
 import { analyzeCoverage } from "@/lib/claim-processor/coverage";
+import { validateOws } from "@/lib/claim-processor/owsValidation";
+import { OwsValidationCard } from "@/components/claim/OwsValidationCard";
 import {
   normalizeBsiNumber,
   type WarrantyRepairLine,
@@ -332,6 +334,24 @@ export default function ClaimProcessor() {
   const coverageReport = warrantyLines.length > 0
     ? analyzeCoverage(vehicle, oasisData, warrantyLines)
     : null;
+
+  // OWS pre-validation (mirrors OWS Claiming Guide v10.5 rules)
+  const owsValidation = warrantyLines.length > 0
+    ? validateOws({
+        vehicle,
+        lines: warrantyLines,
+        comments: Object.fromEntries(warrantyLines.map((l) => [l.itemNumber, getLineComment(l.itemNumber)])),
+        sltMatches,
+        cccByLine: Object.fromEntries(
+          warrantyLines.map((l) => [
+            l.itemNumber,
+            cccSuggestions[0] ? { code: cccSuggestions[0].code, conditionCode: cccSuggestions[0].conditionCode } : undefined,
+          ])
+        ),
+        labourRate,
+      })
+    : null;
+
   const coverageVerdictColor = (v: string) =>
     v === "factory" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
     : v === "esp" ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40"
