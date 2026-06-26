@@ -689,6 +689,9 @@ export default function ClaimProcessor() {
             existingLines={warrantyLines}
           />
 
+          {/* OWS Pre-Validation — mirrors OWS Claiming Guide v10.5 */}
+          {owsValidation && <OwsValidationCard result={owsValidation} />}
+
           {/* Warranty Repair Lines */}
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium text-primary flex items-center gap-1.5">
