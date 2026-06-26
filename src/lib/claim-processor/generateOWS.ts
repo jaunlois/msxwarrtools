@@ -1,5 +1,6 @@
 import { saveAs } from "file-saver";
 import type { WarrantyRepairLine, ClaimVehicleInfo } from "./types";
+import { getOwsClaimType } from "./owsClaimTypes";
 
 export interface OWSClaimData {
   roNumber: string;
@@ -24,6 +25,11 @@ export function generateOWSClaim(data: OWSClaimData, claimNumber: string, return
   const partsTotal = line.parts.reduce((s, p) => s + p.qty * p.unitPrice, 0);
   const labourTotal = line.labourAmount;
   const total = partsTotal + labourTotal;
+  const claimType = getOwsClaimType(line.claimType);
+  const claimTypeLabel = claimType ? `${claimType.code} — ${claimType.label}` : (line.claimType || "11 — Vehicle (NVLW)");
+  const subCodeRow = claimType?.requiresSubCode
+    ? `<div><span class="label">${claimType.subCodeLabel || "Sub-Code"}:</span> ${line.subCode || "<em style=color:#b91c1c>MISSING</em>"}</div>`
+    : "";
 
   const html = `
 <!DOCTYPE html>
@@ -66,22 +72,22 @@ export function generateOWSClaim(data: OWSClaimData, claimNumber: string, return
   <div class="info-grid">
     <div><span class="label">Operation:</span> ${line.opCode} — ${line.operationDescription}</div>
     <div><span class="label">Payment Method:</span> ${line.paymentMethod}</div>
+    <div><span class="label">Claim Type:</span> ${claimTypeLabel}</div>
+    ${subCodeRow}
   </div>
 
   <h2>Comments</h2>
-  <div class="comments">
-    <strong>Complaint:</strong> ${data.complaint}
-    
-<strong>Cause:</strong> ${data.cause}
-
-<strong>Correction:</strong> ${data.correction}
-  </div>
+  <table>
+    <tr><th style="width:120px">Complaint</th><td>${data.complaint || "<em style=color:#b91c1c>MISSING</em>"}</td></tr>
+    <tr><th>Cause</th><td>${data.cause || "<em style=color:#b91c1c>MISSING</em>"}</td></tr>
+    <tr><th>Correction</th><td>${data.correction || "<em style=color:#b91c1c>MISSING</em>"}</td></tr>
+  </table>
 
   <h2>Parts</h2>
   <table>
-    <tr><th>Part Code</th><th>Description</th><th class="right">Qty</th><th class="right">Unit Price</th><th class="right">Total</th></tr>
-    ${line.parts.map(p => `<tr><td>${p.code}</td><td>${p.description}</td><td class="right">${p.qty}</td><td class="right">R ${p.unitPrice.toFixed(2)}</td><td class="right">R ${(p.qty * p.unitPrice).toFixed(2)}</td></tr>`).join("")}
-    <tr class="total-row"><td colspan="4">Parts Total</td><td class="right">R ${partsTotal.toFixed(2)}</td></tr>
+    <tr><th>Causal</th><th>Part Code</th><th>Description</th><th class="right">Qty</th><th class="right">Unit Price</th><th class="right">Total</th></tr>
+    ${line.parts.map(p => `<tr><td style="text-align:center">${p.causal ? "★" : ""}</td><td>${p.code}</td><td>${p.description}</td><td class="right">${p.qty}</td><td class="right">R ${p.unitPrice.toFixed(2)}</td><td class="right">R ${(p.qty * p.unitPrice).toFixed(2)}</td></tr>`).join("")}
+    <tr class="total-row"><td colspan="5">Parts Total</td><td class="right">R ${partsTotal.toFixed(2)}</td></tr>
   </table>
 
   <h2>Labour</h2>

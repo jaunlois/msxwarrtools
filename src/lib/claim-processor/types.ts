@@ -18,6 +18,8 @@ export interface ClaimPartLine {
   description: string;
   qty: number;
   unitPrice: number; // FOB / ex VAT
+  /** OWS requires exactly one causal part per repair line. */
+  causal?: boolean;
 }
 
 export interface ClaimLabourLine {
@@ -38,6 +40,10 @@ export interface WarrantyRepairLine {
   subTotal: number;
   vatAmount: number;
   total: number;
+  /** OWS claim type code, e.g. "11" Vehicle, "12" Emissions, "13" Powertrain, "14" SRS, "31" FSA. */
+  claimType?: string;
+  /** OWS sub-code (when claim type requires one, e.g. FSA number for 31). */
+  subCode?: string;
 }
 
 export interface ParsedQuote {
