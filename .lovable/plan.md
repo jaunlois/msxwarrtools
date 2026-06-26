@@ -1,81 +1,64 @@
-# AWA + Warranty Coverage Intelligence
+# OWS User Guide → App Improvements
 
-Combine the new Ford SA AWA template (uploaded `AWA request form.xlsx`) with a coverage analyzer so the Claim Processor only recommends an AWA when no warranty pays the repair. The OASIS PDF in the example shows the 2021 Ranger Raptor is out of factory bumper-to-bumper but has **Ford Premium Care ESP** active, so the fuel-system parts in the quote should route to ESP — not AWA.
+The Ford ZAF OWS Claiming User Guide v10.5 documents the exact field rules, claim types, sub-codes, exception codes and MT/labour rules the warranty admin must satisfy before a claim will pass OWS pre-validation. Today our Claim Processor extracts data and generates an OWS HTML, but it does **not** model OWS's own validation rules. This plan adds an OWS rules layer so claims are pre-validated locally before the admin keys them into OWS.
 
-## 1. Coverage analyzer — new `src/lib/claim-processor/coverage.ts`
+## Suggested improvements (ranked)
 
-Pure function: `analyzeCoverage(claim: ClaimData): CoverageReport`.
+### 1. OWS Pre-Validation engine (highest value)
+Mirror the guide's "PreValidation Exceptions / Field Validation Errors / Exception Codes" so the user sees in our UI exactly what OWS would reject.
 
-Inputs already in `ClaimData`: `vehicle.warrantyStartDate`, `vehicle.kilometers`, `oasisData.espInfo`, `oasisData.warrantyCoverageMessages`, `warrantyLines`, plus `partsCoverageData` (existing Parts Coverage dataset).
+- New `src/lib/claim-processor/owsValidation.ts` returning `OwsValidationResult { errors[], warnings[], exceptionCodes[] }`.
+- Rule set (from guide ch. 2):
+  - Claim Type required and matches coverage (11 Vehicle, 12 Emissions, 13 Powertrain, 14 Safety Restraint, 31 FSA, etc.).
+  - Sub-code present when claim type requires it.
+  - Repair Line Completion Date ≤ today and ≥ warranty start.
+  - Odometer at repair completion ≥ delivery odometer and ≥ any prior claim odometer (already partly covered by repeat-repair check — extend).
+  - CCC + Condition Code pair required on every repair line (today we suggest CCC but don't block).
+  - Causal part flag set on exactly one part per line.
+  - Prior-Approval Code present when total > self-approval threshold; Dealer Self-Approval Code present when within limits.
+  - MT (actual time) only allowed with a valid base part number OR labour op per the guide's "MT Usage" rules; require comments justifying MT.
+  - Parts: qty > 0, unit price > 0, no duplicate causal parts, supersession check stub.
+  - Labour: hours > 0, rate matches dealer rate, op code exists in SLT (we already match SLT — surface as a hard error if no match).
+  - Comments minimum length per claim type (guide requires 3C: Complaint/Cause/Correction).
+- Render as a new "OWS Pre-Validation" card on `ClaimProcessor` above the generate buttons, with red/amber chips and the matching exception-code prefix (e.g. `E-`, `W-`) so users learn the OWS codes.
 
-Output:
-```ts
-type CoverageVerdict = "factory" | "esp" | "partial" | "awa" | "none";
-interface LineCoverage {
-  line: WarrantyRepairLine;
-  parts: { part: ClaimPartLine; covered: "factory"|"esp"|"none"; planMatch?: string }[];
-  labour: "factory"|"esp"|"none";
-  verdict: CoverageVerdict;
-  reason: string;
-}
-interface CoverageReport {
-  factoryStatus: { inWarranty: boolean; ageYears: number; km: number; cap: { years: 4, km: 120000 } };
-  espStatus: { active: boolean; plan?: string; expiry?: string; kmCap?: number };
-  lines: LineCoverage[];
-  overall: CoverageVerdict;
-  recommendation: string;   // human summary for UI + AWA justification
-  awaJustification: string; // prefilled "Vehicle out of factory warranty (X yrs / Y km). ESP Premium Care active until ... but parts not covered. Goodwill requested to retain loyalty."
-}
-```
+### 2. Claim Type & Sub-Code picker
+Today we hardcode "WAR". Add a dropdown driven by the guide's claim-type table (11–14, 31, plus accessories/MT chapters) and a sub-code field that filters by selected type. Persist per repair line. Feeds into validation and the OWS HTML output.
 
-Rules:
-- Factory: in-warranty if `ageYears ≤ 4` AND `km ≤ 120000` (memory rule).
-- ESP: active if `espInfo.status` matches `ACTIVE|CURRENT` (not `EXPIRED`) and current km ≤ ESP distance cap.
-- Per part: match part-number prefix against `partsCoverageData` rows tagged for the active ESP plan (Premium Care covers powertrain + fuel system + many electronics — reuse existing Parts Coverage lookup).
-- Verdict: all parts factory → `factory`; all ESP → `esp`; mix → `partial`; none → `awa`.
+### 3. Comments builder enforcing 3C format
+Guide chapter 2 "Comments" requires Complaint / Cause / Correction. Replace the single textarea in the AWA + OWS dialogs with three labelled fields, auto-stitch into the OWS comments block, and validate min length (e.g. 20 chars each). Back-page extraction already gives us these — auto-fill.
 
-## 2. Update AWA generator — `src/lib/claim-processor/generateAWA.ts`
+### 4. Causal-part toggle on RepairLineCard
+Add a "Causal" radio per part (exactly one per line). Already implied by guide; required by OWS pre-val.
 
-Match the uploaded template exactly:
-- Worksheet 1 rename: `AWA Request` → `AWA (CLP) Request`.
-- Header text → `Ford Motor Company of Southern Africa, International Markets Group (IMG). Customer Resolution Centre (CRC)`.
-- Attachments note → `Attach all relevant documentation to this document in the designated Tabs below`.
-- Approved-by pre-fill `B. Bezuidenhout`.
-- Default assistance split: Actual 100/100, Customer 20/20, Dealer 0/0, Ford 80/80; Rands columns driven by Excel formulas off `partsTotal` / `labourTotal` so the user can tweak %.
+### 5. Accessories & Add-On repair flows (ch. 3)
+New repair-line type "Accessories" with the guide's claiming pattern (accessory part + install labour op). Add-On repair: link a secondary line to a primary line so the QUOTE/OWS output groups them.
 
-New tabs in this order: `AWA (CLP) Request`, `Diagnostics, Photos, Videos` (blank placeholder), `Service History` (existing), `Other Supporting Documents` (blank placeholder), `QUOTE` (auto-filled), `AWA Exclusions` (renamed from `CLP Exclusions`).
+### 6. Actual-Time (MT) helper
+When user selects op code `MT`, require either a base part number or a published labour op reference, and force the comments field to include time-keeping justification (guide ch. 3 "Proper Actual Time Reporting"). Block save otherwise.
 
-**QUOTE tab** is populated from `claim.warrantyLines` (only lines whose `coverage.verdict === "awa"` or `"partial"` — covered lines go to the ESP/Warranty path, not AWA):
-- Parts table: Part No | Description | Qty | Unit Price | Line Total `=D*E`; subtotal `=SUM(...)`.
-- Labour table: Op Code | Description | Hours | Rate | Line Total `=D*E`; subtotal.
-- Grand total = parts + labour. Currency format `"R"#,##0.00`.
+### 7. Battery claim helper (ch. "Battery Tester Guidelines GRX-3590")
+When a battery part (e.g. `BXT-` prefix) is on the claim, require GRX-3590 tester result fields (state-of-health %, CCA, decision code). Add to Test Results section of OWS output.
 
-Justification cell auto-fills `coverage.awaJustification` when blank.
+### 8. FSA (Claim Type 31) wiring
+We already parse Outstanding FSAs from OASIS. Add a one-click "Create FSA claim line" that pre-fills claim type 31 + FSA number + op code from a small FSA→op lookup (manual table to start).
 
-## 3. Claim Processor UI — `src/pages/ClaimProcessor.tsx`
+### 9. Exception-code glossary page
+New `/ows-codes` route listing all OWS exception-code prefixes from the guide (E-, W-, I-, etc.) with plain-English meaning, so users can self-diagnose OWS rejections. Reuses the same card style as `/ccc`.
 
-Add a "Coverage Analysis" card above the existing AWA button, rendered after a quote + OASIS are loaded:
-- Factory status badge (In warranty / Out of warranty + age/km).
-- ESP status badge (Active Premium Care until {date} / Expired / None).
-- Per-line list with colored chip: Factory / ESP / Not covered.
-- Recommendation banner: one of
-  - "Submit as factory warranty claim — no AWA needed" (disable AWA button)
-  - "Submit as ESP claim — covered by Premium Care" (disable AWA button, show "Generate ESP claim" hint)
-  - "Partial coverage — file ESP for covered parts, AWA for the rest"
-  - "No coverage — AWA goodwill request justified"
-
-AWA dialog: pre-fill `complaint` from back-page concern (already done) and `justification` from `coverage.awaJustification`. Pass only uncovered lines into `generateAWA`.
-
-## 4. Coverage memory
-
-Append to project core memory: "AWA only when no factory + no ESP coverage; ESP Premium Care covers powertrain/fuel system — route to ESP first."
+### 10. Claim-type-aware OWS HTML output
+Extend `generateOWS.ts` to include claim type, sub-code, causal-part flag column, prior-approval/self-approval fields, and structured 3C comments — matching the guide's claim-entry screen layout so the admin can copy field-for-field.
 
 ## Out of scope
-- No new UI route, no Cloud/backend changes, no changes to OWS/COR generators.
-- Photo/Diagnostic embedding stays manual (blank tab).
-- ESP plan-to-parts mapping uses the existing Parts Coverage dataset; no new dataset import.
+- No backend changes; everything stays client-side.
+- No live OWS API integration (guide is the only source of truth).
+- AWA/COR/ESP flows untouched except for the shared 3C comments builder.
 
-## Files touched
-- new: `src/lib/claim-processor/coverage.ts`
-- edit: `src/lib/claim-processor/generateAWA.ts`, `src/lib/claim-processor/types.ts` (add `CoverageReport` re-export), `src/pages/ClaimProcessor.tsx`
-- memory: `mem://index.md` core line
+## Files (proposed)
+
+- new: `src/lib/claim-processor/owsValidation.ts`, `src/lib/claim-processor/owsClaimTypes.ts`, `src/lib/claim-processor/owsExceptionCodes.ts`, `src/pages/OwsCodes.tsx`, `src/components/claim/OwsValidationCard.tsx`, `src/components/claim/ThreeCCommentsField.tsx`
+- edit: `src/pages/ClaimProcessor.tsx`, `src/components/claim/RepairLineCard.tsx`, `src/lib/claim-processor/generateOWS.ts`, `src/lib/claim-processor/types.ts`, `src/App.tsx` (route), `src/components/AppSidebar.tsx` (nav)
+- memory: append OWS validation rule to `mem://index.md` core
+
+## Recommended first slice
+Ship items **1 + 3 + 4 + 10** together — they form the minimum that makes our generated OWS claim pass pre-validation on the first try. Items 2/5/6/7/8/9 follow as separate slices.
